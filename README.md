@@ -1,4 +1,4 @@
-# AeroSense RMUTI
+# edge-ai-air-quality-forecast
 
 AeroSense RMUTI is a machine-learning project for forecasting next-day, two-day, and three-day Thai PM2.5 AQI categories for the RMUTI campus in Nakhon Ratchasima. It uses a time-aware training pipeline with separate XGBoost and LightGBM models for each forecast horizon and selects the best-performing model per horizon.
 
@@ -17,7 +17,7 @@ AeroSense RMUTI is a machine-learning project for forecasting next-day, two-day,
 ## Repository structure
 
 ```text
-aerosense-rmuti/
+aerosense/
 ├── data/
 │   ├── raw/
 │   ├── processed/
