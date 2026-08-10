@@ -1,0 +1,78 @@
+{
+  "test_rows": 224,
+  "horizons": {
+    "day1": {
+      "accuracy": 0.6830357142857143,
+      "macro_f1": 0.6733340733340734,
+      "feature_importances": {
+        "pm25": 0.3390926122665405,
+        "temperature_2m": 0.04458073899149895,
+        "relative_humidity_2m": 0.05314481258392334,
+        "surface_pressure": 0.030329154804348946,
+        "pm25_lag1": 0.03026116080582142,
+        "pm25_lag2": 0.030416587367653847,
+        "pm25_lag3": 0.03035658784210682,
+        "pm25_roll_mean3": 0.12536486983299255,
+        "pm25_roll_mean7": 0.06155730411410332,
+        "pm25_trend3": 0.030947640538215637,
+        "pressure_lag1": 0.04594510793685913,
+        "pressure_trend3": 0.029088478535413742,
+        "aqi_category_lag1": 0.0,
+        "day_of_year": 0.035517044365406036,
+        "month": 0.03985845670104027,
+        "month_sin": 0.030295860022306442,
+        "month_cos": 0.04324359446763992
+      },
+      "confusion_matrix_file": "outputs/confusion_matrices/best_day1_confusion_matrix.png"
+    },
+    "day2": {
+      "accuracy": 0.5401785714285714,
+      "macro_f1": 0.5359578914257703,
+      "feature_importances": {
+        "pm25": 0.2242060750722885,
+        "temperature_2m": 0.04506038501858711,
+        "relative_humidity_2m": 0.04309649020433426,
+        "surface_pressure": 0.06782401353120804,
+        "pm25_lag1": 0.025614332407712936,
+        "pm25_lag2": 0.03656579181551933,
+        "pm25_lag3": 0.027590904384851456,
+        "pm25_roll_mean3": 0.12869465351104736,
+        "pm25_roll_mean7": 0.1001015454530716,
+        "pm25_trend3": 0.03336115926504135,
+        "pressure_lag1": 0.03356179967522621,
+        "pressure_trend3": 0.02567172795534134,
+        "aqi_category_lag1": 0.0,
+        "day_of_year": 0.15253157913684845,
+        "month": 0.013127452693879604,
+        "month_sin": 0.01928759180009365,
+        "month_cos": 0.02370453253388405
+      },
+      "confusion_matrix_file": "outputs/confusion_matrices/best_day2_confusion_matrix.png"
+    },
+    "day3": {
+      "accuracy": 0.48660714285714285,
+      "macro_f1": 0.48416636180720685,
+      "feature_importances": {
+        "pm25": 0.060944002121686935,
+        "temperature_2m": 0.04346763715147972,
+        "relative_humidity_2m": 0.03970501199364662,
+        "surface_pressure": 0.0429154708981514,
+        "pm25_lag1": 0.03773490712046623,
+        "pm25_lag2": 0.04056229814887047,
+        "pm25_lag3": 0.03419237211346626,
+        "pm25_roll_mean3": 0.0761835053563118,
+        "pm25_roll_mean7": 0.10829418897628784,
+        "pm25_trend3": 0.02705497108399868,
+        "pressure_lag1": 0.04401455819606781,
+        "pressure_trend3": 0.028647711500525475,
+        "aqi_category_lag1": 0.03049810603260994,
+        "day_of_year": 0.10587040334939957,
+        "month": 0.16854575276374817,
+        "month_sin": 0.0526806004345417,
+        "month_cos": 0.058688513934612274
+      },
+      "confusion_matrix_file": "outputs/confusion_matrices/best_day3_confusion_matrix.png"
+    }
+  },
+  "accuracy_degradation_day1_to_day3": 0.19642857142857145
+}

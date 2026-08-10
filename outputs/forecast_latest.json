@@ -1,0 +1,17 @@
+{
+  "day1": {
+    "date": "2026-08-10",
+    "predicted_aqi_category": "Very Good",
+    "feature_confidence": "high"
+  },
+  "day2": {
+    "date": "2026-08-11",
+    "predicted_aqi_category": "Very Good",
+    "feature_confidence": "low"
+  },
+  "day3": {
+    "date": "2026-08-12",
+    "predicted_aqi_category": "Good",
+    "feature_confidence": "low"
+  }
+}

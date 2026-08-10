@@ -1,0 +1,17 @@
+{
+  "day1": {
+    "xgboost_cv_f1": 0.571401,
+    "lightgbm_cv_f1": 0.569497,
+    "selected": "xgboost"
+  },
+  "day2": {
+    "xgboost_cv_f1": 0.467091,
+    "lightgbm_cv_f1": 0.45728,
+    "selected": "xgboost"
+  },
+  "day3": {
+    "xgboost_cv_f1": 0.41219,
+    "lightgbm_cv_f1": 0.404487,
+    "selected": "xgboost"
+  }
+}

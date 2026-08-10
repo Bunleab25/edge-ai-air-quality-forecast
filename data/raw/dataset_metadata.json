@@ -1,0 +1,37 @@
+{
+  "generated_on": "2026-08-09",
+  "collection_window": {
+    "start": "2023-01-01",
+    "end": "2026-08-08"
+  },
+  "openaq": {
+    "sensor_id": 1304112,
+    "station_id": 225602,
+    "daily_endpoint": "https://api.openaq.org/v3/sensors/1304112/days",
+    "station_distance_from_campus_km": 2.3
+  },
+  "open_meteo": {
+    "archive_endpoint": "https://archive-api.open-meteo.com/v1/archive",
+    "latitude": 14.987471,
+    "longitude": 102.117965,
+    "timezone": "Asia/Bangkok",
+    "daily_wind_direction_method": "circular mean via atan2(mean(sin(rad)), mean(cos(rad)))"
+  },
+  "aqi_standard": {
+    "name": "Thai PCD four-class simplification",
+    "breakpoints_ug_m3": {
+      "Very Good": "0.0-15.0",
+      "Good": "15.1-25.0",
+      "Moderate": "25.1-37.5",
+      "Unhealthy": ">37.5"
+    }
+  },
+  "rows": 1113,
+  "weather_columns": [
+    "temperature_2m",
+    "relative_humidity_2m",
+    "surface_pressure",
+    "windspeed_10m",
+    "winddirection_10m"
+  ]
+}

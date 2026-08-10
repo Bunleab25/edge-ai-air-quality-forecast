@@ -1,0 +1,34 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.venv/
+venv/
+.env
+.env.*
+
+# Test and tooling
+.pytest_cache/
+.mypy_cache/
+.pyright/
+coverage.xml
+htmlcov/
+
+# Data and model artifacts
+*.pkl
+*.joblib
+*.csv
+*.json
+
+# OS/editor
+.DS_Store
+.idea/
+.vscode/
+
+# Keep essential project data tracked
+!data/**/*.csv
+!data/**/*.json
+!outputs/**/*.json
+!outputs/**/*.png
+!outputs/**/*.csv
