@@ -32,3 +32,6 @@ htmlcov/
 !outputs/**/*.json
 !outputs/**/*.png
 !outputs/**/*.csv
+
+# Allow sanitized Node-RED flow export
+!node-red/flows_sanitized.json

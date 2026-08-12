@@ -1,0 +1,744 @@
+[
+  {
+    "id": "9dab5d7ebec8e82f",
+    "type": "tab",
+    "label": "AeroSense Pro Edge",
+    "disabled": false,
+    "info": ""
+  },
+  {
+    "id": "54f04362f95b9de6",
+    "type": "group",
+    "z": "9dab5d7ebec8e82f",
+    "style": {
+      "stroke": "#999999",
+      "stroke-opacity": "1",
+      "fill": "none",
+      "fill-opacity": "1",
+      "label": true,
+      "label-position": "nw",
+      "color": "#767676"
+    },
+    "nodes": [
+      "2ab2de20681f44b7",
+      "52b4c7ab5ecd7c36",
+      "63aef8d4fa9f9baa",
+      "12224ac27415e9be",
+      "ce949f90b08bb1f0",
+      "f1f4e7d068b15643",
+      "b0aae257c0b4ea09",
+      "b87e8714a452c13f",
+      "6c52de9a4023fe3c",
+      "fd8cff7f13898594",
+      "f5e7bec51ab238c3",
+      "10a7d3d7608bc3bf",
+      "28d921099a647d6c"
+    ],
+    "x": 74,
+    "y": 379,
+    "w": 932,
+    "h": 322
+  },
+  {
+    "id": "6d31c90f2554dc00",
+    "type": "group",
+    "z": "9dab5d7ebec8e82f",
+    "style": {
+      "stroke": "#999999",
+      "stroke-opacity": "1",
+      "fill": "none",
+      "fill-opacity": "1",
+      "label": true,
+      "label-position": "nw",
+      "color": "#767676"
+    },
+    "nodes": [
+      "a6885e4257cd71bc",
+      "3d06f93d5d3cfd7d"
+    ],
+    "x": 614,
+    "y": 279,
+    "w": 492,
+    "h": 82
+  },
+  {
+    "id": "48955f7dd0db3375",
+    "type": "group",
+    "z": "9dab5d7ebec8e82f",
+    "style": {
+      "stroke": "#999999",
+      "stroke-opacity": "1",
+      "fill": "none",
+      "fill-opacity": "1",
+      "label": true,
+      "label-position": "nw",
+      "color": "#767676"
+    },
+    "nodes": [
+      "bfb27a9ec492e2cc",
+      "7ede79239f4e67a6",
+      "6178828d652050fd",
+      "3395616a23df4b1f",
+      "abf0710abdb28e6d",
+      "1f9e94c76ea5b2bc"
+    ],
+    "x": 1134,
+    "y": 59,
+    "w": 672,
+    "h": 202
+  },
+  {
+    "id": "600066efcf5169c8",
+    "type": "group",
+    "z": "9dab5d7ebec8e82f",
+    "style": {
+      "stroke": "#999999",
+      "stroke-opacity": "1",
+      "fill": "none",
+      "fill-opacity": "1",
+      "label": true,
+      "label-position": "nw",
+      "color": "#767676"
+    },
+    "nodes": [
+      "4f227ac4c4b29e80",
+      "378f5aab68adbc6c"
+    ],
+    "x": 594,
+    "y": 59,
+    "w": 512,
+    "h": 82
+  },
+  {
+    "id": "9efa2e16622a9168",
+    "type": "mqtt in",
+    "z": "9dab5d7ebec8e82f",
+    "name": "Sensor readings (aqi/sensor1)",
+    "topic": "rmuti/edge/<device>/sensor1",
+    "qos": "1",
+    "datatype": "auto",
+    "broker": "mqtt_broker_config",
+    "nl": false,
+    "rap": false,
+    "inputs": 0,
+    "x": 220,
+    "y": 140,
+    "wires": [
+      [
+        "3ceb240c2aae2777"
+      ]
+    ]
+  },
+  {
+    "id": "3ceb240c2aae2777",
+    "type": "function",
+    "z": "9dab5d7ebec8e82f",
+    "name": "Parse sensor JSON",
+    "func": "let data = msg.payload;\n\nif (typeof data === \"string\") {\n    try {\n        data = JSON.parse(data);\n    } catch (e) {\n        node.error(\"Invalid JSON payload: \" + e.message, msg);\n        return null;\n    }\n}\n\n// Raw continuous features for the AI/ML model.\nconst reading = {\n    pm25: Number(data.pm25),\n    temperature: Number(data.temperature),\n    humidity: Number(data.humidity),\n    pressure: Number(data.pressure)\n};\n\n// ------------------------------------------------------------\n// VALIDATION 1: reject missing / non-numeric fields\n// ------------------------------------------------------------\nfor (const [key, val] of Object.entries(reading)) {\n    if (!Number.isFinite(val)) {\n        node.warn(`Rejected reading: invalid ${key} = ${JSON.stringify(data[key])}`);\n        return null;\n    }\n}\n\n// ------------------------------------------------------------\n// VALIDATION 2: reject physically implausible values\n// Tune these ranges to match your actual sensor's real specs.\n// ------------------------------------------------------------\nconst ranges = {\n    pm25: [0, 1000],\n    temperature: [-20, 60],\n    humidity: [0, 100],\n    pressure: [500, 1100]\n};\n\nfor (const [key, [min, max]] of Object.entries(ranges)) {\n    if (reading[key] < min || reading[key] > max) {\n        node.warn(`Rejected reading: ${key}=${reading[key]} out of range [${min}, ${max}]`);\n        return null;\n    }\n}\n\n// ------------------------------------------------------------\n// ATTACH PAYLOAD AND HEADERS FOR FLASK\n// ------------------------------------------------------------\nmsg.payload = reading;\nmsg.headers = {\n    \"Content-Type\": \"application/json\"\n};\n\nreturn msg;",
+    "outputs": 1,
+    "timeout": "",
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 460,
+    "y": 200,
+    "wires": [
+      [
+        "4f227ac4c4b29e80",
+        "a6885e4257cd71bc"
+      ]
+    ]
+  },
+  {
+    "id": "4f227ac4c4b29e80",
+    "type": "http request",
+    "z": "9dab5d7ebec8e82f",
+    "g": "600066efcf5169c8",
+    "name": "POST /predict (Flask)",
+    "method": "POST",
+    "ret": "obj",
+    "paytoqs": "ignore",
+    "url": "http://localhost:5001/predict",
+    "tls": "",
+    "persist": false,
+    "proxy": "",
+    "insecureHTTPParser": false,
+    "authType": "",
+    "senderr": false,
+    "headers": [],
+    "x": 720,
+    "y": 100,
+    "wires": [
+      [
+        "378f5aab68adbc6c"
+      ]
+    ]
+  },
+  {
+    "id": "a6885e4257cd71bc",
+    "type": "function",
+    "z": "9dab5d7ebec8e82f",
+    "g": "6d31c90f2554dc00",
+    "name": "RAM + Disk Storage",
+    "func": "let history = global.get(\"aerosense_history\") || [];\n\nif (msg.payload && msg.payload.pm25 !== undefined) {\n    const timestamp = new Date().toISOString();\n    \n    // 1. Memory Storage for UI (Increased limit to 10,000 points for longer history view)\n    const newPoint = {\n        timestamp: timestamp,\n        pm25: msg.payload.pm25,\n        temp: msg.payload.temperature,\n        hum: msg.payload.humidity,\n        pres: msg.payload.pressure\n    };\n    history.push(newPoint);\n    if (history.length > 10000) history.shift(); // Keep up to 10,000 readings in RAM\n    global.set(\"aerosense_history\", history);\n\n    // 2. Disk Storage formatting (Permanent CSV archive for model retraining)\n    // Write a header once if the archive file is empty/new.\n    let headerWritten = global.get(\"aerosense_csv_header_written\");\n    let csvOut = \"\";\n    if (!headerWritten) {\n        csvOut += \"timestamp,pm25,temperature,humidity,pressure\\n\";\n        global.set(\"aerosense_csv_header_written\", true);\n    }\n    csvOut += `${timestamp},${msg.payload.pm25},${msg.payload.temperature},${msg.payload.humidity},${msg.payload.pressure}\\n`;\n    \n    return { payload: csvOut };\n}\nreturn null;",
+    "outputs": 1,
+    "timeout": "",
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 740,
+    "y": 320,
+    "wires": [
+      [
+        "3d06f93d5d3cfd7d"
+      ]
+    ]
+  },
+  {
+    "id": "3d06f93d5d3cfd7d",
+    "type": "file",
+    "z": "9dab5d7ebec8e82f",
+    "g": "6d31c90f2554dc00",
+    "name": "Save to archive.csv",
+    "filename": "aerosense_archive.csv",
+    "filenameType": "str",
+    "appendNewline": false,
+    "createDir": false,
+    "overwriteFile": "false",
+    "encoding": "none",
+    "x": 990,
+    "y": 320,
+    "wires": [
+      []
+    ]
+  },
+  {
+    "id": "378f5aab68adbc6c",
+    "type": "function",
+    "z": "9dab5d7ebec8e82f",
+    "g": "600066efcf5169c8",
+    "name": "Process API & Alerts",
+    "func": "const result = msg.payload;\n\n// ============================================================\n// 0. HTTP STATUS CHECK\n// ============================================================\nif (msg.statusCode !== undefined && (msg.statusCode < 200 || msg.statusCode >= 300)) {\n    node.error(\"Flask /predict returned HTTP \" + msg.statusCode + \": \" + JSON.stringify(result), msg);\n    return null;\n}\n\nif (!result || typeof result !== \"object\") {\n    node.warn(\"No valid response received from Flask AI/ML API.\");\n    return null;\n}\n\n// ============================================================\n// 1. CLASS DEFINITIONS\n// ============================================================\nconst classMap = {\n    0: \"Very Good\",\n    1: \"Good\",\n    2: \"Moderate\",\n    3: \"Unhealthy\"\n};\n\nconst reverseClassMap = {\n    \"very good\": 0,\n    \"very_good\": 0,\n    \"very-good\": 0,\n    \"good\": 1,\n    \"moderate\": 2,\n    \"unhealthy\": 3\n};\n\nconst allowedClasses = [\n    \"Very Good\",\n    \"Good\",\n    \"Moderate\",\n    \"Unhealthy\"\n];\n\n// ============================================================\n// 2. GET PREDICTION FROM FLASK API (DAY 1)\n// ============================================================\nlet category = null;\nif (result.forecast && result.forecast.day1) {\n    category = result.forecast.day1.predicted_category;\n} else {\n    category = result.predicted_category_tomorrow || result.prediction || result.aqi_category || result.category || null;\n}\n\n// ============================================================\n// 3. GET CLASS ID\n// ============================================================\nlet classId = null;\nif (result.class_id !== undefined && result.class_id !== null && result.class_id !== \"\") {\n    classId = Number(result.class_id);\n}\n\n// ============================================================\n// 4. HANDLE NUMERIC PREDICTION\n// ============================================================\nif (\n    typeof category === \"number\" ||\n    (typeof category === \"string\" && /^[0-3]$/.test(category.trim()))\n) {\n    const numericClass = Number(category);\n    if (numericClass >= 0 && numericClass <= 3) {\n        classId = numericClass;\n        category = classMap[numericClass];\n    }\n}\n\n// ============================================================\n// 5. NORMALIZE MODEL TEXT\n// ============================================================\nif (category !== null && category !== undefined) {\n    const normalized = String(category)\n        .trim()\n        .replace(/\\s+/g, \" \")\n        .replace(/[.!]+$/, \"\")\n        .toLowerCase();\n\n    const aliases = {\n        \"very good\": \"Very Good\",\n        \"very_good\": \"Very Good\",\n        \"very-good\": \"Very Good\",\n        \"class 0\": \"Very Good\",\n        \"good\": \"Good\",\n        \"class 1\": \"Good\",\n        \"moderate\": \"Moderate\",\n        \"moderate or worse\": \"Moderate\",\n        \"moderate_or_worse\": \"Moderate\",\n        \"class 2\": \"Moderate\",\n        \"unhealthy\": \"Unhealthy\",\n        \"unhealthy or worse\": \"Unhealthy\",\n        \"unhealthy_or_worse\": \"Unhealthy\",\n        \"unhealthy/worse\": \"Unhealthy\",\n        \"unhealthy or above\": \"Unhealthy\",\n        \"class 3\": \"Unhealthy\"\n    };\n\n    if (aliases[normalized]) {\n        category = aliases[normalized];\n    } else {\n        node.warn(\"Unrecognized category text -> raw: \" + JSON.stringify(category) + \", normalized: \" + JSON.stringify(normalized));\n        category = String(category).trim();\n    }\n}\n\n// ============================================================\n// 6. DERIVE CLASS ID FROM CATEGORY\n// ============================================================\nif (classId === null && category && reverseClassMap[category.toLowerCase()] !== undefined) {\n    classId = reverseClassMap[category.toLowerCase()];\n}\n\n// ============================================================\n// 7. VALIDATE AI/ML OUTPUT\n// ============================================================\nif (!allowedClasses.includes(category)) {\n    node.warn(\"Unsupported AI/ML prediction received: \" + JSON.stringify(category));\n    return null;\n}\n\n// ============================================================\n// 8. VALIDATE / CORRECT CLASS ID\n// ============================================================\nif (classId === null || !Number.isInteger(classId) || classId < 0 || classId > 3) {\n    classId = reverseClassMap[category.toLowerCase()];\n}\n\nif (classId !== null && classMap[classId] !== category) {\n    node.warn(\"Class mismatch detected. Category=\" + category + \", class_id=\" + classId);\n    classId = reverseClassMap[category.toLowerCase()];\n}\n\n// ============================================================\n// 9. CONFIDENCE\n// ============================================================\nlet confidence = null;\nlet resultConf = (result.forecast && result.forecast.day1) ? result.forecast.day1.confidence : result.confidence;\n\nif (resultConf !== undefined && resultConf !== null) {\n    confidence = Number(resultConf);\n    if (Number.isFinite(confidence)) {\n        if (confidence > 1) {\n            confidence = confidence / 100;\n        }\n        confidence = Math.max(0, Math.min(1, confidence));\n    } else {\n        confidence = null;\n    }\n}\n\n// ============================================================\n// 10. CLASS PROBABILITIES\n// ============================================================\nconst probabilities =\n    (result.forecast && result.forecast.day1 && result.forecast.day1.class_probabilities) ||\n    result.class_probabilities ||\n    result.probabilities ||\n    {};\n\n// ============================================================\n// 11. GET INPUT FEATURES\n// ============================================================\nconst rawInputs = result.input_received || result.inputs || {};\n\nconst inputs = {\n    pm25: Number.isFinite(Number(rawInputs.pm25)) ? Number(rawInputs.pm25) : null,\n    temperature: Number.isFinite(Number(rawInputs.temperature)) ? Number(rawInputs.temperature) : null,\n    humidity: Number.isFinite(Number(rawInputs.humidity)) ? Number(rawInputs.humidity) : null,\n    pressure: Number.isFinite(Number(rawInputs.pressure)) ? Number(rawInputs.pressure) : null\n};\n\n// ============================================================\n// 12. FRIENDLY MESSAGE\n// ============================================================\nconst friendlyMessages = {\n    \"Very Good\": \"\ud83c\udf3f Great news! Air quality is expected to be very good over the next 24 hours. It should be a comfortable time for outdoor activities.\",\n    \"Good\": \"\ud83c\udf3f Good news! Air quality is expected to stay good over the next 24 hours. Outdoor activities should be comfortable for most people.\",\n    \"Moderate\": \"\u26a0\ufe0f Air quality is expected to be moderate over the next 24 hours. Most people can continue normal activities, but sensitive individuals may want to take a little extra care.\",\n    \"Unhealthy\": \"\ud83d\udea8 Please take care! Air quality is expected to be unhealthy over the next 24 hours. Consider reducing prolonged outdoor exposure.\"\n};\n\nconst friendlyMessage = friendlyMessages[category];\n\n// ============================================================\n// 13. HUMAN-READABLE CLASS NUMBER\n// ============================================================\nconst classNumber = classId + 1;\nconst classDisplay = `Class ${classNumber}/4`;\n\n// ============================================================\n// 14. SAVE LATEST RESULT FOR DASHBOARD (INCLUDES 3-DAY FORECAST)\n// ============================================================\nglobal.set(\"aerosense_latest\", {\n    timestamp: new Date().toISOString(),\n    forecast_horizon: \"Next 24 hours\",\n    forecast_horizon_code: \"T+24h\",\n    model_type: \"Random Forest Classifier\",\n    predicted_category: category,\n    class_id: classId,\n    class_number: classNumber,\n    confidence: confidence,\n    probabilities: probabilities,\n    inputs: inputs,\n    friendly_message: friendlyMessage,\n    full_forecast: result.forecast || null,\n    status: \"ok\"\n});\n\n// ============================================================\n// 15. TELEGRAM ALERT CONDITIONS (UPDATED FOR 3-DAY)\n// ============================================================\nconst alertCategories = [\"Moderate\", \"Unhealthy\"];\n\n// Extract the categories for all 3 days\nlet d1Cat = result.forecast && result.forecast.day1 ? result.forecast.day1.predicted_category : category;\nlet d2Cat = result.forecast && result.forecast.day2 ? result.forecast.day2.predicted_category : \"N/A\";\nlet d3Cat = result.forecast && result.forecast.day3 ? result.forecast.day3.predicted_category : \"N/A\";\n\n// Check if ANY of the next 3 days have an elevated risk\nconst needsAlert = alertCategories.includes(d1Cat) || \n                   alertCategories.includes(d2Cat) || \n                   alertCategories.includes(d3Cat);\n\nif (!needsAlert) {\n    // Stop flow if all 3 days are Good/Very Good\n    return null; \n}\n\n// ============================================================\n// 16. TELEGRAM BOT TOKEN\n// ============================================================\nconst token = \"8981886657:AAGdAUEOZ7YLSavBUNEMQZmq6g3L2oGe37M\";\n\nif (!token) {\n    node.error(\"Token is missing.\");\n    return null;\n}\n\n// ============================================================\n// 17. GET TELEGRAM SUBSCRIBERS\n// ============================================================\nlet subscribers = global.get(\"telegram_subscribers\") || [];\nif (subscribers.length === 0) {\n    subscribers = [\"8684688972\"];\n}\n\n// ============================================================\n// 18. FORMAT SENSOR VALUES\n// ============================================================\nconst pm25Text = inputs.pm25 !== null ? inputs.pm25 + \" \u00b5g/m\u00b3\" : \"N/A\";\nconst tempText = inputs.temperature !== null ? inputs.temperature + \" \u00b0C\" : \"N/A\";\nconst humidityText = inputs.humidity !== null ? inputs.humidity + \" %\" : \"N/A\";\nconst pressureText = inputs.pressure !== null ? inputs.pressure + \" hPa\" : \"N/A\";\n\n// ============================================================\n// 19. BUILD TELEGRAM MESSAGE\n// ============================================================\nconst getEmoji = (c) => {\n    if (c === \"Very Good\" || c === \"Good\") return \"\ud83d\udfe2\";\n    if (c === \"Moderate\") return \"\ud83d\udfe1\";\n    if (c === \"Unhealthy\") return \"\ud83d\udd34\";\n    return \"\u26aa\";\n};\n\nlet forecast3DaySummary = \"\";\nif (result.forecast) {\n    forecast3DaySummary = \n        `\\n\\n\ud83d\udcc5 *3-Day Forecast Overview*\\n` +\n        `\u2022 Day 1 (24h): ${getEmoji(d1Cat)} *${d1Cat}*\\n` +\n        `\u2022 Day 2 (48h): ${getEmoji(d2Cat)} *${d2Cat}*\\n` +\n        `\u2022 Day 3 (72h): ${getEmoji(d3Cat)} *${d3Cat}*`;\n}\n\nconst telegramText =\n    \"\ud83d\udea8 *AeroSense Air Quality Alert*\\n\\n\" +\n    friendlyMessage +\n    forecast3DaySummary + \"\\n\\n\" +\n    \"\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\\n\\n\" +\n    \"\ud83e\udd16 *AI/ML Forecast Details*\\n\" +\n    \"\u2022 Current Input Class: *\" + classDisplay + \"*\\n\" +\n    \"\u2022 Model: *Random Forest Classifier*\\n\\n\" +\n    \"\ud83d\udcca *Latest Edge Sensors*\\n\" +\n    \"\u2022 PM2.5: \" + pm25Text + \"\\n\" +\n    \"\u2022 Temperature: \" + tempText + \"\\n\" +\n    \"\u2022 Humidity: \" + humidityText + \"\\n\" +\n    \"\u2022 Pressure: \" + pressureText + \"\\n\\n\" +\n    \"\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\\n\\n\" +\n    \"\ud83c\udf3f Stay aware and take care outside.\";\n\n// ============================================================\n// 20. PREPARE REQUESTS FOR ALL SUBSCRIBERS\n// ============================================================\nconst outputMessages = [];\n\nfor (let i = 0; i < subscribers.length; i++) {\n    let telegramMsg = {};\n    telegramMsg.url = \"https://api.telegram.org/bot\" + token + \"/sendMessage\";\n    telegramMsg.headers = { \"Content-Type\": \"application/json\" };\n    telegramMsg.payload = {\n        chat_id: subscribers[i],\n        text: telegramText,\n        parse_mode: \"Markdown\"\n    };\n    outputMessages.push(telegramMsg);\n}\n\n// ============================================================\n// 21. SEND TO TELEGRAM HTTP REQUEST NODE\n// ============================================================\nreturn [outputMessages];",
+    "outputs": 1,
+    "timeout": "",
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 980,
+    "y": 100,
+    "wires": [
+      [
+        "7ede79239f4e67a6"
+      ]
+    ]
+  },
+  {
+    "id": "2ab2de20681f44b7",
+    "type": "http in",
+    "z": "9dab5d7ebec8e82f",
+    "g": "54f04362f95b9de6",
+    "name": "GET /aerosense",
+    "url": "/aerosense",
+    "method": "get",
+    "upload": false,
+    "skipBodyParsing": false,
+    "swaggerDoc": "",
+    "x": 180,
+    "y": 420,
+    "wires": [
+      [
+        "52b4c7ab5ecd7c36"
+      ]
+    ]
+  },
+  {
+    "id": "52b4c7ab5ecd7c36",
+    "type": "template",
+    "z": "9dab5d7ebec8e82f",
+    "g": "54f04362f95b9de6",
+    "name": "Advanced Pro Dashboard",
+    "field": "payload",
+    "fieldType": "msg",
+    "format": "html",
+    "syntax": "plain",
+    "template": "<!DOCTYPE html>\n<html lang=\"en\" class=\"dark\">\n\n<head>\n  <meta charset=\"UTF-8\">\n  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n\n  <title>AeroSense Pro | AI Air Quality Monitoring</title>\n\n  <script src=\"https://cdn.tailwindcss.com\"></script>\n  <script src=\"https://cdn.jsdelivr.net/npm/apexcharts\"></script>\n\n  <link rel=\"preconnect\" href=\"https://fonts.googleapis.com\">\n  <link\n    href=\"https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap\"\n    rel=\"stylesheet\">\n\n  <script>\n    tailwind.config = {\n      darkMode: 'class',\n      theme: {\n        extend: {\n          fontFamily: {\n            sans: ['Inter', 'system-ui', 'sans-serif'],\n            mono: ['JetBrains Mono', 'monospace']\n          },\n          colors: {\n            brand: '#3b82f6',\n            dark: '#020617',\n            panel: '#0f172a'\n          }\n        }\n      }\n    }\n  </script>\n\n  <style>\n    * {\n      font-family: 'Inter', system-ui, sans-serif;\n    }\n\n    body {\n      background:\n        radial-gradient(circle at 15% 0%, #0b1a34 0%, #020617 55%);\n      color: #e2e8f0;\n    }\n\n    .glass {\n      background: rgba(15, 23, 42, 0.68);\n      backdrop-filter: blur(14px);\n      border: 1px solid rgba(148, 163, 184, 0.08);\n    }\n\n    .glass-hover {\n      transition: all .25s ease;\n    }\n\n    .glass-hover:hover {\n      border-color: rgba(59, 130, 246, 0.35);\n      transform: translateY(-2px);\n    }\n\n    .tab-active {\n      border-bottom: 2px solid #3b82f6;\n      color: #60a5fa;\n    }\n\n    .data-table th,\n    .data-table td {\n      padding: 12px 14px;\n      border-bottom: 1px solid #1e293b;\n      text-align: left;\n    }\n\n    .data-table th {\n      background-color: rgba(15, 23, 42, 0.95);\n      color: #94a3b8;\n      font-weight: 600;\n      font-size: 11px;\n      letter-spacing: 0.06em;\n      text-transform: uppercase;\n      position: sticky;\n      top: 0;\n    }\n\n    .data-table tbody tr {\n      transition: background-color .15s ease;\n    }\n\n    .data-table tbody tr:hover {\n      background-color: rgba(59, 130, 246, 0.06);\n    }\n\n    .mono {\n      font-family: 'JetBrains Mono', monospace;\n    }\n\n    ::-webkit-scrollbar {\n      width: 8px;\n      height: 8px;\n    }\n\n    ::-webkit-scrollbar-track {\n      background: transparent;\n    }\n\n    ::-webkit-scrollbar-thumb {\n      background: #1e293b;\n      border-radius: 8px;\n    }\n\n    ::-webkit-scrollbar-thumb:hover {\n      background: #334155;\n    }\n\n    @keyframes pulse-ring {\n      0% {\n        box-shadow: 0 0 0 0 rgba(16, 185, 129, .45);\n      }\n\n      100% {\n        box-shadow: 0 0 0 8px rgba(16, 185, 129, 0);\n      }\n    }\n\n    .pulse-live {\n      animation: pulse-ring 2s infinite;\n    }\n\n    .fade-in {\n      animation: fadeIn .4s ease;\n    }\n\n    @keyframes fadeIn {\n      from {\n        opacity: 0;\n        transform: translateY(4px);\n      }\n\n      to {\n        opacity: 1;\n        transform: translateY(0);\n      }\n    }\n\n    .info-line {\n      border-left: 2px solid rgba(59, 130, 246, .45);\n    }\n\n    /* --- NEW AIR QUALITY OVERVIEW STYLES --- */\n    .air-quality-overview {\n      width: 100%;\n      padding: 32px 36px 28px;\n      background:\n        radial-gradient(circle at 10% 0%,\n          rgba(32, 45, 120, 0.18),\n          transparent 45%),\n        linear-gradient(135deg,\n          #090b2a 0%,\n          #06081d 55%,\n          #040516 100%);\n      border-bottom: 1px solid rgba(255, 255, 255, 0.08);\n    }\n\n    .monitoring-label {\n      display: flex;\n      align-items: center;\n      gap: 10px;\n      margin-bottom: 14px;\n      color: #00e6a8;\n      font-size: 14px;\n      font-weight: 700;\n      letter-spacing: 1px;\n      text-transform: uppercase;\n    }\n\n    .monitoring-dot {\n      width: 10px;\n      height: 10px;\n      flex-shrink: 0;\n      background: #00e6a8;\n      border-radius: 50%;\n      box-shadow:\n        0 0 0 6px rgba(0, 230, 168, 0.10),\n        0 0 16px rgba(0, 230, 168, 0.45);\n    }\n\n    .overview-title {\n      margin: 0 0 16px;\n      color: #ffffff;\n      font-size: clamp(32px, 4vw, 54px);\n      font-weight: 800;\n      line-height: 1.05;\n      letter-spacing: -1.8px;\n    }\n\n    .overview-description {\n      max-width: 760px;\n      margin: 0;\n      color: #aeb8d4;\n      font-size: 17px;\n      font-weight: 400;\n      line-height: 1.6;\n    }\n\n    @media (max-width: 768px) {\n      .air-quality-overview {\n        padding: 26px 22px 24px;\n      }\n\n      .overview-title {\n        font-size: 34px;\n        letter-spacing: -1px;\n      }\n\n      .overview-description {\n        font-size: 15px;\n      }\n    }\n  </style>\n\n  <style id=\"aerosense-clean-ui\">\n    /* ---- Clean dashboard rhythm ---- */\n    .air-quality-overview {\n      padding: 28px 32px !important;\n      margin-bottom: 0 !important;\n    }\n\n    .air-quality-overview .overview-title {\n      letter-spacing: -1.5px;\n      line-height: 1.05;\n    }\n\n    .air-quality-overview .overview-description {\n      max-width: 720px;\n      line-height: 1.55;\n    }\n\n    .section-heading {\n      margin-bottom: 16px !important;\n    }\n\n    .compact-card {\n      min-height: 0 !important;\n    }\n\n    /* Four classes: equal-height, easy to scan */\n    .quality-class-card {\n      min-height: 132px;\n      display: flex;\n      flex-direction: column;\n      justify-content: space-between;\n    }\n\n    /* Forecast cards: stronger hierarchy */\n    .forecast-card {\n      min-height: 190px;\n    }\n\n    /* Sensor cards: value first, less visual noise */\n    .sensor-card {\n      min-height: 145px;\n    }\n\n    .sensor-card .sensor-value {\n      line-height: 1;\n    }\n\n    /* Telegram action stays visible but doesn't dominate */\n    .telegram-action {\n      white-space: nowrap;\n    }\n\n    /* Consistent mobile spacing */\n    @media (max-width: 768px) {\n      .air-quality-overview {\n        padding: 24px 20px !important;\n      }\n\n      .quality-class-card {\n        min-height: 0;\n      }\n\n      .forecast-card,\n      .sensor-card {\n        min-height: 0;\n      }\n    }\n  </style>\n\n\n  <style id=\"telegram-big-ui\">\n    /* Larger Telegram action without making the whole card oversized */\n    .telegram-action {\n      display: inline-flex !important;\n      align-items: center !important;\n      gap: 12px !important;\n      min-height: 68px !important;\n      padding: 8px 16px 8px 8px !important;\n      border-radius: 16px !important;\n      white-space: nowrap;\n    }\n\n    .telegram-icon {\n      width: 52px !important;\n      height: 52px !important;\n      min-width: 52px !important;\n      border-radius: 14px !important;\n      background: #229ED9 !important;\n      display: flex !important;\n      align-items: center !important;\n      justify-content: center !important;\n      box-shadow: 0 8px 22px rgba(34, 158, 217, .22);\n    }\n\n    .telegram-icon svg {\n      width: 28px !important;\n      height: 28px !important;\n      display: block !important;\n    }\n\n    .telegram-action .telegram-title {\n      font-size: 14px !important;\n      font-weight: 700 !important;\n      color: #e2e8f0 !important;\n    }\n\n    .telegram-action .telegram-subtitle {\n      margin-top: 3px !important;\n      font-size: 11px !important;\n      color: #64748b !important;\n    }\n\n    .telegram-action:hover .telegram-icon {\n      transform: scale(1.04);\n      box-shadow: 0 10px 26px rgba(34, 158, 217, .30);\n    }\n\n    .telegram-icon {\n      transition: transform .2s ease, box-shadow .2s ease;\n    }\n\n    @media (max-width: 640px) {\n      .telegram-action {\n        width: 100% !important;\n        justify-content: flex-start !important;\n      }\n    }\n  </style>\n\n</head>\n\n<body class=\"min-h-screen flex flex-col\">\n\n  <!-- =========================================================\n       NAVIGATION\n  ========================================================== -->\n\n  <nav class=\"glass sticky top-0 z-50 px-5 sm:px-6 py-3.5 flex justify-between items-center shadow-lg shadow-black/30\">\n\n    <div class=\"flex items-center gap-3\">\n\n      <div\n        class=\"w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 via-cyan-400 to-emerald-400 flex items-center justify-center font-extrabold text-slate-950 text-lg shadow-lg shadow-blue-500/20\">\n        A\n      </div>\n\n      <div>\n        <div class=\"flex items-center gap-2\">\n          <h1 class=\"text-base font-bold tracking-tight text-white leading-none\">\n            AeroSense <span class=\"text-blue-400\">Pro</span>\n          </h1>\n\n          <span class=\"text-[10px] font-semibold px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-300 border border-blue-500/20\">\n            EDGE AI\n          </span>\n        </div>\n\n        <p class=\"text-[10px] text-slate-500 mt-1 hidden sm:block\">\n          AI-Powered Air Quality Monitoring\n        </p>\n      </div>\n\n    </div>\n\n    <div class=\"flex items-center gap-2 sm:gap-3\">\n\n      <span id=\"clock\" class=\"hidden md:block text-xs text-slate-500 mono\"></span>\n\n      <button\n        onclick=\"forceRefresh()\"\n        class=\"px-3.5 py-2 bg-slate-800/80 hover:bg-slate-700 text-slate-200 text-xs font-semibold rounded-lg border border-slate-700/80 shadow-sm transition-all active:scale-95 flex items-center gap-2\"\n      >\n        <svg\n          id=\"refresh-icon\"\n          class=\"w-3.5 h-3.5 transition-transform duration-500\"\n          fill=\"none\"\n          stroke=\"currentColor\"\n          viewBox=\"0 0 24 24\"\n        >\n          <path\n            stroke-linecap=\"round\"\n            stroke-linejoin=\"round\"\n            stroke-width=\"2\"\n            d=\"M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15\"\n          />\n        </svg>\n\n        <span id=\"refresh-timer\" class=\"text-slate-400\">\n          10s\n        </span>\n      </button>\n\n      <div class=\"flex items-center gap-2 bg-slate-800/60 px-3 py-1.5 rounded-full border border-slate-700/80\">\n\n        <div id=\"status-dot\" class=\"w-2 h-2 rounded-full bg-slate-500\"></div>\n\n        <span\n          id=\"status-text\"\n          class=\"text-xs font-medium text-slate-300\"\n        >\n          Connecting\u2026\n        </span>\n\n      </div>\n\n    </div>\n  </nav>\n\n\n  <!-- =========================================================\n       TABS\n  ========================================================== -->\n\n  <div class=\"px-5 sm:px-8 pt-5 border-b border-slate-800/80 flex gap-4\">\n\n    <button\n      onclick=\"switchTab('dashboard')\"\n      id=\"tab-dashboard\"\n      class=\"pb-3 text-sm font-semibold tab-active transition-colors\"\n    >\n      Live Dashboard\n    </button>\n\n    <button\n      onclick=\"switchTab('history')\"\n      id=\"tab-history\"\n      class=\"pb-3 text-sm font-semibold text-slate-500 hover:text-slate-300 transition-colors\"\n    >\n      History & Data\n    </button>\n\n  </div>\n\n\n  <!-- =========================================================\n       MAIN CONTENT\n  ========================================================== -->\n\n  <main class=\"flex-1 p-5 sm:p-8 max-w-[1400px] w-full mx-auto\">\n\n\n    <!-- =======================================================\n         DASHBOARD\n    ======================================================== -->\n\n    <div id=\"view-dashboard\" class=\"space-y-6\">\n\n\n      <!-- PAGE INTRODUCTION -->\n\n      <div class=\"air-quality-overview fade-in rounded-2xl\">\n\n        <div class=\"monitoring-label\">\n          <span class=\"monitoring-dot\"></span>\n          <span>Real-Time Monitoring</span>\n        </div>\n\n        <h1 class=\"overview-title\">\n          Air Quality Overview\n        </h1>\n\n        <p class=\"overview-description\">\n          Live sensor data and Edge AI predictions help you\n          understand current air quality and plan ahead.\n        </p>\n\n      </div>\n\n\n      <!-- =====================================================\n           CURRENT AIR QUALITY SUMMARY\n      ====================================================== -->\n\n      <section class=\"glass rounded-2xl p-5 sm:p-5 fade-in\">\n\n        <div class=\"flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4\">\n\n          <div>\n\n            <p class=\"text-[10px] uppercase tracking-widest text-slate-500 font-bold mb-2\">\n              Current Air Quality\n            </p>\n\n            <div class=\"flex items-center gap-3\">\n\n              <div id=\"current-quality-icon\" class=\"w-11 h-11 rounded-xl bg-slate-800 flex items-center justify-center\">\n\n                <svg id=\"current-quality-icon-svg\" class=\"w-5 h-5 text-slate-400\" fill=\"none\" stroke=\"currentColor\"\n                  viewBox=\"0 0 24 24\">\n                  <path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\"\n                    d=\"M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z\" />\n                </svg>\n\n              </div>\n\n              <div>\n\n                <h3 id=\"current-quality\" class=\"text-xl font-extrabold text-white\">\n                  Waiting for data\n                </h3>\n\n                <p id=\"current-quality-desc\" class=\"text-xs text-slate-400 mt-1\">\n                  The system is waiting for the latest sensor measurement.\n                </p>\n\n              </div>\n\n            </div>\n\n          </div>\n\n\n          <div class=\"info-line pl-4 max-w-xl\">\n\n            <p class=\"text-xs font-semibold text-slate-300 mb-1\">\n              How should I read this?\n            </p>\n\n            <p class=\"text-xs text-slate-500 leading-relaxed\">\n              The PM2.5 measurement represents the concentration of fine\n              particles in the air. Higher values generally indicate\n              poorer air quality. The Edge AI model uses sensor information\n              to estimate future conditions.\n            </p>\n\n          </div>\n\n        </div>\n\n      </section>\n\n\n      <!-- =====================================================\n           AIR QUALITY CATEGORIES\n      ====================================================== -->\n\n      <section class=\"glass rounded-2xl p-5 sm:p-5 fade-in\">\n        <div class=\"flex flex-col sm:flex-row sm:items-end sm:justify-between gap-2 mb-5\">\n          <div>\n            <p class=\"text-[10px] uppercase tracking-widest text-slate-500 font-bold mb-1\">Air Quality Guide</p>\n            <h2 class=\"text-xl font-bold text-white\">Four Air Quality Levels</h2>\n            <p class=\"text-xs text-slate-500 mt-1\">Simple categories to help you understand the forecast quickly.</p>\n          </div>\n        </div>\n        <div class=\"grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3\">\n          <div class=\"quality-class-card rounded-xl border border-blue-500/20 bg-blue-500/5 p-4\">\n            <div class=\"flex items-center gap-2 mb-2\">\n              <span class=\"w-2.5 h-2.5 rounded-full bg-blue-400\"></span><span class=\"font-bold text-blue-300\">Very Good</span>\n            </div>\n            <p class=\"text-xs text-slate-400 leading-5\">Excellent air quality. Outdoor activities are comfortable for\n              most people.</p>\n          </div>\n          <div class=\"quality-class-card rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-4\">\n            <div class=\"flex items-center gap-2 mb-2\">\n              <span class=\"w-2.5 h-2.5 rounded-full bg-emerald-400\"></span><span class=\"font-bold text-emerald-300\">Good</span>\n            </div>\n            <p class=\"text-xs text-slate-400 leading-5\">Safe for most people. Normal outdoor activities are fine.</p>\n          </div>\n          <div class=\"quality-class-card rounded-xl border border-yellow-500/20 bg-yellow-500/5 p-4\">\n            <div class=\"flex items-center gap-2 mb-2\">\n              <span class=\"w-2.5 h-2.5 rounded-full bg-yellow-400\"></span><span class=\"font-bold text-yellow-300\">Moderate</span>\n            </div>\n            <p class=\"text-xs text-slate-400 leading-5\">Sensitive groups should take care outdoors.</p>\n          </div>\n          <div class=\"quality-class-card rounded-xl border border-red-500/20 bg-red-500/5 p-4\">\n            <div class=\"flex items-center gap-2 mb-2\">\n              <span class=\"w-2.5 h-2.5 rounded-full bg-red-400\"></span><span class=\"font-bold text-red-300\">Unhealthy</span>\n            </div>\n            <p class=\"text-xs text-slate-400 leading-5\">Reduce prolonged outdoor activity and take care.</p>\n          </div>\n        </div>\n      </section>\n\n      <!-- =====================================================\n           AI FORECAST\n      ====================================================== -->\n\n      <section class=\"space-y-4\">\n\n        <div class=\"flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3\">\n\n          <div>\n\n            <p class=\"text-[10px] uppercase tracking-widest text-blue-400 font-bold mb-1\">\n              AI Prediction\n            </p>\n\n            <h2 class=\"text-xl font-bold text-white tracking-tight\">\n              Air Quality Forecast\n            </h2>\n\n            <p class=\"text-xs text-slate-500 mt-1\">\n              Predicted air quality for the next 72 hours.\n            </p>\n\n          </div>\n\n\n          <div class=\"flex flex-wrap items-center gap-3\">\n            <a href=\"https://t.me/whyuu25_bot\" target=\"_blank\" rel=\"noopener noreferrer\"\n              class=\"telegram-action group bg-slate-800/70 hover:bg-slate-800 border border-slate-700 hover:border-[#229ED9]/60 transition-all active:scale-95\"\n              aria-label=\"Open Telegram air quality alerts bot\">\n\n              <span class=\"telegram-icon\">\n    <svg viewBox=\"0 0 24 24\" fill=\"white\" aria-hidden=\"true\">\n      <path d=\"M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12\n      12 12 0 0 0 12-12A12 12 0 0 0 12 0h-.056zm4.962 7.224\n      c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325\n      c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36\n      8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46\n      -1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78\n      -.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23\n      .007-.032.014-.15-.056-.212s-.174-.041-.249-.024\n      c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302\n      .48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374\n      -1.297-.789.027-.216.325-.437.893-.663 3.498-1.524\n      5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627\n      4.476-1.635z\"/>\n    </svg>\n  </span>\n\n              <span class=\"text-left leading-tight\">\n    <span class=\"telegram-title block\">Get Air Quality Alerts</span>\n              <span class=\"telegram-subtitle block\">Open Telegram bot</span>\n              </span>\n            </a>\n            <div id=\"alert-badge\"\n              class=\"hidden items-center gap-2 bg-red-500/10 border border-red-500/30 text-red-300 text-xs font-semibold px-3 py-2 rounded-lg\">\n\n              <svg class=\"w-4 h-4 shrink-0\" fill=\"none\" stroke=\"currentColor\" viewBox=\"0 0 24 24\">\n                <path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\"\n                  d=\"M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z\" />\n              </svg>\n\n              Elevated Risk in Next 24 Hours\n            </div>\n          </div>\n\n        </div>\n\n\n        <div class=\"grid grid-cols-1 md:grid-cols-3 gap-4\">\n\n\n          <!-- NEXT 24 HOURS -->\n\n          <div id=\"card-day1\"\n            class=\"glass rounded-2xl p-5 border-l-[3px] fade-in flex flex-col h-full border-slate-700\">\n\n            <div class=\"flex justify-between items-start mb-4\">\n\n              <div>\n\n                <p class=\"text-[10px] uppercase tracking-widest text-slate-400 font-bold mb-1\">\n                  Next 24 Hours\n                </p>\n\n                <h2 id=\"val-pred-day1\" class=\"text-2xl font-extrabold text-white\">\n                  --\n                </h2>\n\n              </div>\n\n              <div id=\"icon-wrap-day1\"\n                class=\"w-10 h-10 rounded-xl flex items-center justify-center shrink-0 bg-slate-800/50\">\n\n                <svg id=\"icon-day1\" class=\"w-5 h-5 text-slate-400\" fill=\"none\" stroke=\"currentColor\"\n                  viewBox=\"0 0 24 24\">\n                  <path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\"\n                    d=\"M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z\" />\n                </svg>\n\n              </div>\n\n            </div>\n\n\n            <p id=\"desc-day1\" class=\"text-xs text-slate-400 leading-relaxed flex-1\">\n              Waiting for the AI model to analyze sensor data.\n            </p>\n\n\n            <div class=\"mt-5 pt-3 border-t border-slate-700/50 flex justify-between items-center\">\n\n              <span class=\"text-[10px] text-slate-500 uppercase tracking-wider font-semibold\">\n                AI Confidence\n              </span>\n\n              <span\n                id=\"conf-day1\"\n                class=\"text-xs font-mono font-bold text-slate-300\"\n              >\n                --%\n              </span>\n\n            </div>\n\n          </div>\n\n\n          <!-- 24\u201348 HOURS -->\n\n          <div id=\"card-day2\"\n            class=\"glass rounded-2xl p-5 border-l-[3px] fade-in flex flex-col h-full border-slate-700\">\n\n            <div class=\"flex justify-between items-start mb-4\">\n\n              <div>\n\n                <p class=\"text-[10px] uppercase tracking-widest text-slate-400 font-bold mb-1\">\n                  24\u201348 Hours\n                </p>\n\n                <h2 id=\"val-pred-day2\" class=\"text-2xl font-extrabold text-white\">\n                  --\n                </h2>\n\n              </div>\n\n              <div id=\"icon-wrap-day2\"\n                class=\"w-10 h-10 rounded-xl flex items-center justify-center shrink-0 bg-slate-800/50\">\n\n                <svg id=\"icon-day2\" class=\"w-5 h-5 text-slate-400\" fill=\"none\" stroke=\"currentColor\"\n                  viewBox=\"0 0 24 24\">\n                  <path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\"\n                    d=\"M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z\" />\n                </svg>\n\n              </div>\n\n            </div>\n\n\n            <p id=\"desc-day2\" class=\"text-xs text-slate-400 leading-relaxed flex-1\">\n              Waiting for the AI model to analyze sensor data.\n            </p>\n\n\n            <div class=\"mt-5 pt-3 border-t border-slate-700/50 flex justify-between items-center\">\n\n              <span class=\"text-[10px] text-slate-500 uppercase tracking-wider font-semibold\">\n                AI Confidence\n              </span>\n\n              <span\n                id=\"conf-day2\"\n                class=\"text-xs font-mono font-bold text-slate-300\"\n              >\n                --%\n              </span>\n\n            </div>\n\n          </div>\n\n\n          <!-- 48\u201372 HOURS -->\n\n          <div id=\"card-day3\"\n            class=\"glass rounded-2xl p-5 border-l-[3px] fade-in flex flex-col h-full border-slate-700\">\n\n            <div class=\"flex justify-between items-start mb-4\">\n\n              <div>\n\n                <p class=\"text-[10px] uppercase tracking-widest text-slate-400 font-bold mb-1\">\n                  48\u201372 Hours\n                </p>\n\n                <h2 id=\"val-pred-day3\" class=\"text-2xl font-extrabold text-white\">\n                  --\n                </h2>\n\n              </div>\n\n              <div id=\"icon-wrap-day3\"\n                class=\"w-10 h-10 rounded-xl flex items-center justify-center shrink-0 bg-slate-800/50\">\n\n                <svg id=\"icon-day3\" class=\"w-5 h-5 text-slate-400\" fill=\"none\" stroke=\"currentColor\"\n                  viewBox=\"0 0 24 24\">\n                  <path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\"\n                    d=\"M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z\" />\n                </svg>\n\n              </div>\n\n            </div>\n\n\n            <p id=\"desc-day3\" class=\"text-xs text-slate-400 leading-relaxed flex-1\">\n              Waiting for the AI model to analyze sensor data.\n            </p>\n\n\n            <div class=\"mt-5 pt-3 border-t border-slate-700/50 flex justify-between items-center\">\n\n              <span class=\"text-[10px] text-slate-500 uppercase tracking-wider font-semibold\">\n                AI Confidence\n              </span>\n\n              <span\n                id=\"conf-day3\"\n                class=\"text-xs font-mono font-bold text-slate-300\"\n              >\n                --%\n              </span>\n\n            </div>\n\n          </div>\n\n        </div>\n\n      </section>\n\n\n      <!-- =====================================================\n           SENSOR MEASUREMENTS\n      ====================================================== -->\n\n      <section class=\"space-y-4\">\n\n        <div>\n\n          <p class=\"text-[10px] uppercase tracking-widest text-slate-500 font-bold mb-1\">\n            Live Sensor Measurements\n          </p>\n\n          <h2 class=\"text-lg font-bold text-white\">\n            Current Environmental Conditions\n          </h2>\n\n          <p class=\"text-xs text-slate-500 mt-1\">\n            These values are measured directly by the connected sensors.\n          </p>\n\n        </div>\n\n\n        <div class=\"grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4\">\n\n\n          <!-- PM2.5 -->\n\n          <div class=\"glass glass-hover rounded-2xl p-5 fade-in\">\n\n            <div class=\"flex items-start justify-between mb-4\">\n\n              <div>\n\n                <p class=\"text-xs text-slate-300 font-semibold\">\n                  PM2.5\n                </p>\n\n                <p class=\"text-[11px] text-slate-500 mt-1\">\n                  Fine particle concentration\n                </p>\n\n              </div>\n\n              <div class=\"w-8 h-8 rounded-lg bg-sky-500/10 flex items-center justify-center\">\n\n                <svg class=\"w-4 h-4 text-sky-400\" fill=\"none\" stroke=\"currentColor\" viewBox=\"0 0 24 24\">\n                  <circle cx=\"12\" cy=\"12\" r=\"8\" stroke-width=\"1.8\" />\n                  <path d=\"M8 12h8M12 8v8\" stroke-width=\"1.8\" />\n                </svg>\n\n              </div>\n\n            </div>\n\n            <h2 id=\"val-pm25\" class=\"text-3xl font-bold text-white mono\">\n              --\n              <span class=\"text-sm font-medium text-slate-500 ml-1\">\n                \u00b5g/m\u00b3\n              </span>\n            </h2>\n\n            <p class=\"text-[10px] text-slate-600 mt-3\">\n              Main air-quality indicator\n            </p>\n\n          </div>\n\n\n          <!-- TEMPERATURE -->\n\n          <div class=\"glass glass-hover rounded-2xl p-5 fade-in\">\n\n            <div class=\"flex items-start justify-between mb-4\">\n\n              <div>\n\n                <p class=\"text-xs text-slate-300 font-semibold\">\n                  Temperature\n                </p>\n\n                <p class=\"text-[11px] text-slate-500 mt-1\">\n                  Ambient air temperature\n                </p>\n\n              </div>\n\n              <div class=\"w-8 h-8 rounded-lg bg-orange-500/10 flex items-center justify-center\">\n\n                <svg class=\"w-4 h-4 text-orange-400\" fill=\"none\" stroke=\"currentColor\" viewBox=\"0 0 24 24\">\n                  <path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.8\"\n                    d=\"M15.362 5.214A8.252 8.252 0 0112 21 8.25 8.25 0 016.038 7.048 8.287 8.287 0 009 9.6a8.983 8.983 0 013.361-6.867 8.21 8.21 0 003 2.48z\" />\n                </svg>\n\n              </div>\n\n            </div>\n\n            <h2 id=\"val-temp\" class=\"text-3xl font-bold text-white mono\">\n              --\n              <span class=\"text-sm font-medium text-slate-500 ml-1\">\n                \u00b0C\n              </span>\n            </h2>\n\n            <p class=\"text-[10px] text-slate-600 mt-3\">\n              Current environmental temperature\n            </p>\n\n          </div>\n\n\n          <!-- HUMIDITY -->\n\n          <div class=\"glass glass-hover rounded-2xl p-5 fade-in\">\n\n            <div class=\"flex items-start justify-between mb-4\">\n\n              <div>\n\n                <p class=\"text-xs text-slate-300 font-semibold\">\n                  Humidity\n                </p>\n\n                <p class=\"text-[11px] text-slate-500 mt-1\">\n                  Relative moisture in air\n                </p>\n\n              </div>\n\n              <div class=\"w-8 h-8 rounded-lg bg-cyan-500/10 flex items-center justify-center\">\n\n                <svg class=\"w-4 h-4 text-cyan-400\" fill=\"none\" stroke=\"currentColor\" viewBox=\"0 0 24 24\">\n                  <path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.8\"\n                    d=\"M12 21a7.5 7.5 0 007.5-7.5c0-4.14-3.36-7.9-7.5-12-4.14 4.1-7.5 7.86-7.5 12A7.5 7.5 0 0012 21z\" />\n                </svg>\n\n              </div>\n\n            </div>\n\n            <h2 id=\"val-hum\" class=\"text-3xl font-bold text-white mono\">\n              --\n              <span class=\"text-sm font-medium text-slate-500 ml-1\">\n                %\n              </span>\n            </h2>\n\n            <p class=\"text-[10px] text-slate-600 mt-3\">\n              Current relative humidity\n            </p>\n\n          </div>\n\n\n          <!-- PRESSURE -->\n\n          <div class=\"glass glass-hover rounded-2xl p-5 fade-in\">\n\n            <div class=\"flex items-start justify-between mb-4\">\n\n              <div>\n\n                <p class=\"text-xs text-slate-300 font-semibold\">\n                  Air Pressure\n                </p>\n\n                <p class=\"text-[11px] text-slate-500 mt-1\">\n                  Atmospheric pressure\n                </p>\n\n              </div>\n\n              <div class=\"w-8 h-8 rounded-lg bg-violet-500/10 flex items-center justify-center\">\n\n                <svg class=\"w-4 h-4 text-violet-400\" fill=\"none\" stroke=\"currentColor\" viewBox=\"0 0 24 24\">\n                  <path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.8\"\n                    d=\"M12 6v12m-4-8l4-4 4 4m-4-4v0\" />\n                </svg>\n\n              </div>\n\n            </div>\n\n            <h2 id=\"val-pres\" class=\"text-3xl font-bold text-white mono\">\n              --\n              <span class=\"text-sm font-medium text-slate-500 ml-1\">\n                hPa\n              </span>\n            </h2>\n\n            <p class=\"text-[10px] text-slate-600 mt-3\">\n              Current atmospheric pressure\n            </p>\n\n          </div>\n\n        </div>\n\n      </section>\n\n\n      <!-- =====================================================\n           EXPLANATION\n      ====================================================== -->\n\n      <section class=\"glass rounded-2xl p-5 sm:p-5 fade-in\">\n\n        <div class=\"flex items-start gap-4\">\n\n          <div class=\"w-9 h-9 rounded-lg bg-blue-500/10 flex items-center justify-center shrink-0\">\n\n            <svg class=\"w-4 h-4 text-blue-400\" fill=\"none\" stroke=\"currentColor\" viewBox=\"0 0 24 24\">\n              <circle cx=\"12\" cy=\"12\" r=\"9\" stroke-width=\"1.8\" />\n\n              <path d=\"M12 11v5M12 8h.01\" stroke-width=\"2\" stroke-linecap=\"round\" />\n            </svg>\n\n          </div>\n\n\n          <div>\n\n            <h3 class=\"text-sm font-semibold text-white\">\n              How AeroSense works\n            </h3>\n\n            <p class=\"text-xs text-slate-500 leading-relaxed mt-2 max-w-4xl\">\n              Sensors continuously collect PM2.5, temperature, humidity,\n              and atmospheric pressure. These measurements are sent to the\n              system, where the Edge AI model analyzes the latest conditions\n              and produces an air-quality prediction. The forecast is shown\n              as an easy-to-understand category rather than only raw numbers.\n            </p>\n\n          </div>\n\n        </div>\n\n      </section>\n\n\n      <!-- =====================================================\n           SENSOR CHARTS\n      ====================================================== -->\n\n      <section class=\"space-y-4\">\n\n        <div>\n\n          <p class=\"text-[10px] uppercase tracking-widest text-slate-500 font-bold mb-1\">\n            Historical Trends\n          </p>\n\n          <h2 class=\"text-lg font-bold text-white\">\n            Environmental Data Over Time\n          </h2>\n\n          <p class=\"text-xs text-slate-500 mt-1\">\n            Use these charts to see how environmental conditions have changed.\n          </p>\n\n        </div>\n\n\n        <div class=\"grid grid-cols-1 lg:grid-cols-2 gap-4\">\n\n\n          <!-- PM2.5 CHART -->\n\n          <div class=\"glass rounded-2xl p-5 sm:p-5 fade-in\">\n\n            <div class=\"flex items-start justify-between mb-4\">\n\n              <div class=\"flex items-start gap-2.5\">\n\n                <span class=\"w-2.5 h-2.5 rounded-full bg-sky-400 mt-1\"></span>\n\n                <div>\n\n                  <h3 class=\"text-sm font-semibold text-white\">\n                    PM2.5\n                  </h3>\n\n                  <p class=\"text-[11px] text-slate-500 mt-1\">\n                    Fine particle concentration over time\n                  </p>\n\n                </div>\n\n              </div>\n\n            </div>\n\n            <div id=\"mainChart\" class=\"w-full h-[260px]\"></div>\n\n          </div>\n\n\n          <!-- TEMPERATURE CHART -->\n\n          <div class=\"glass rounded-2xl p-5 sm:p-5 fade-in\">\n\n            <div class=\"flex items-start gap-2.5 mb-4\">\n\n              <svg class=\"w-4 h-4 text-orange-400 mt-0.5\" fill=\"none\" stroke=\"currentColor\" viewBox=\"0 0 24 24\">\n                <path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.8\"\n                  d=\"M15.362 5.214A8.252 8.252 0 0112 21 8.25 8.25 0 016.038 7.048 8.287 8.287 0 009 9.6a8.983 8.983 0 013.361-6.867 8.21 8.21 0 003 2.48z\" />\n              </svg>\n\n              <div>\n\n                <h3 class=\"text-sm font-semibold text-white\">\n                  Temperature\n                </h3>\n\n                <p class=\"text-[11px] text-slate-500 mt-1\">\n                  Ambient temperature trend\n                </p>\n\n              </div>\n\n            </div>\n\n            <div id=\"tempChart\" class=\"w-full h-[260px]\"></div>\n\n          </div>\n\n\n          <!-- HUMIDITY CHART -->\n\n          <div class=\"glass rounded-2xl p-5 sm:p-5 fade-in\">\n\n            <div class=\"flex items-start gap-2.5 mb-4\">\n\n              <svg class=\"w-4 h-4 text-cyan-400 mt-0.5\" fill=\"none\" stroke=\"currentColor\" viewBox=\"0 0 24 24\">\n                <path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.8\"\n                  d=\"M12 21a7.5 7.5 0 007.5-7.5c0-4.14-3.36-7.9-7.5-12-4.14 4.1-7.5 7.86-7.5 12A7.5 7.5 0 0012 21z\" />\n              </svg>\n\n              <div>\n\n                <h3 class=\"text-sm font-semibold text-white\">\n                  Humidity\n                </h3>\n\n                <p class=\"text-[11px] text-slate-500 mt-1\">\n                  Relative humidity trend\n                </p>\n\n              </div>\n\n            </div>\n\n            <div id=\"humChart\" class=\"w-full h-[260px]\"></div>\n\n          </div>\n\n\n          <!-- PRESSURE CHART -->\n\n          <div class=\"glass rounded-2xl p-5 sm:p-5 fade-in\">\n\n            <div class=\"flex items-start gap-2.5 mb-4\">\n\n              <svg class=\"w-4 h-4 text-violet-400 mt-0.5\" fill=\"none\" stroke=\"currentColor\" viewBox=\"0 0 24 24\">\n                <path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.8\"\n                  d=\"M12 6v12m-4-8l4-4 4 4m-4-4v0\" />\n              </svg>\n\n              <div>\n\n                <h3 class=\"text-sm font-semibold text-white\">\n                  Air Pressure\n                </h3>\n\n                <p class=\"text-[11px] text-slate-500 mt-1\">\n                  Atmospheric pressure trend\n                </p>\n\n              </div>\n\n            </div>\n\n            <div id=\"presChart\" class=\"w-full h-[260px]\"></div>\n\n          </div>\n\n        </div>\n\n      </section>\n\n    </div>\n\n\n    <!-- =======================================================\n         HISTORY\n    ======================================================== -->\n\n    <div id=\"view-history\" class=\"hidden space-y-6\">\n\n\n      <!-- HISTORY INTRO -->\n\n      <section>\n\n        <p class=\"text-[10px] uppercase tracking-widest text-blue-400 font-bold mb-2\">\n          Historical Monitoring Data\n        </p>\n\n        <h2 class=\"text-2xl font-extrabold text-white\">\n          Sensor History & Data\n        </h2>\n\n        <p class=\"text-sm text-slate-400 mt-2 max-w-3xl leading-relaxed\">\n          Review previously recorded environmental measurements.\n          This section can be used to inspect sensor behavior,\n          understand long-term trends, and export the collected data.\n        </p>\n\n      </section>\n\n\n      <!-- SUMMARY -->\n\n      <section class=\"space-y-4\">\n\n        <div>\n\n          <h3 class=\"text-base font-semibold text-white\">\n            Data Summary\n          </h3>\n\n          <p class=\"text-xs text-slate-500 mt-1\">\n            A quick overview of the collected PM2.5 measurements.\n          </p>\n\n        </div>\n\n\n        <div class=\"grid grid-cols-2 lg:grid-cols-4 gap-4\">\n\n\n          <div class=\"glass rounded-2xl p-5\">\n\n            <p class=\"text-xs text-slate-500 font-semibold uppercase tracking-wider mb-2\">\n              Total Readings\n            </p>\n\n            <h3 id=\"stat-count\" class=\"text-xl font-bold text-white mono\">\n              --\n            </h3>\n\n            <p class=\"text-[10px] text-slate-600 mt-1\">\n              Recorded sensor measurements\n            </p>\n\n          </div>\n\n\n          <div class=\"glass rounded-2xl p-5\">\n\n            <p class=\"text-xs text-slate-500 font-semibold uppercase tracking-wider mb-2\">\n              Average PM2.5\n            </p>\n\n            <h3 id=\"stat-avg\" class=\"text-xl font-bold text-white mono\">\n              --\n            </h3>\n\n            <p class=\"text-[10px] text-slate-600 mt-1\">\n              Mean particle concentration\n            </p>\n\n          </div>\n\n\n          <div class=\"glass rounded-2xl p-5\">\n\n            <p class=\"text-xs text-slate-500 font-semibold uppercase tracking-wider mb-2\">\n              Highest PM2.5\n            </p>\n\n            <h3 id=\"stat-max\" class=\"text-xl font-bold text-white mono\">\n              --\n            </h3>\n\n            <p class=\"text-[10px] text-slate-600 mt-1\">\n              Maximum recorded value\n            </p>\n\n          </div>\n\n\n          <div class=\"glass rounded-2xl p-5\">\n\n            <p class=\"text-xs text-slate-500 font-semibold uppercase tracking-wider mb-2\">\n              Lowest PM2.5\n            </p>\n\n            <h3 id=\"stat-min\" class=\"text-xl font-bold text-white mono\">\n              --\n            </h3>\n\n            <p class=\"text-[10px] text-slate-600 mt-1\">\n              Minimum recorded value\n            </p>\n\n          </div>\n\n        </div>\n\n      </section>\n\n\n      <!-- DATA TABLE -->\n\n      <section class=\"glass rounded-2xl p-5 sm:p-5\">\n\n        <div class=\"flex flex-col lg:flex-row justify-between lg:items-center gap-4 mb-5\">\n\n          <div>\n\n            <h3 class=\"text-base font-semibold text-white\">\n              Recorded Sensor Measurements\n            </h3>\n\n            <p class=\"text-xs text-slate-500 mt-1\">\n              Latest\n              <span id=\"row-count-label\">500</span>\n              measurements shown from\n              <span id=\"row-total-label\">0</span>\n              available records.\n            </p>\n\n          </div>\n\n\n          <a href=\"/api/export\"\n            class=\"px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-semibold rounded-lg shadow-md shadow-emerald-900/30 transition-all active:scale-95 flex items-center gap-2 w-fit\">\n\n            <svg class=\"w-4 h-4\" fill=\"none\" stroke=\"currentColor\" viewBox=\"0 0 24 24\">\n              <path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\"\n                d=\"M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4\" />\n            </svg>\n\n            Download Sensor Data\n\n          </a>\n\n        </div>\n\n\n        <div class=\"overflow-x-auto overflow-y-auto max-h-[560px] rounded-lg border border-slate-800/60\">\n\n          <table class=\"w-full data-table text-sm\">\n\n            <thead>\n\n              <tr>\n                <th>Recorded Time</th>\n                <th>PM2.5 (\u00b5g/m\u00b3)</th>\n                <th>Temperature (\u00b0C)</th>\n                <th>Humidity (%)</th>\n                <th>Pressure (hPa)</th>\n              </tr>\n\n            </thead>\n\n            <tbody id=\"history-tbody\">\n\n              <tr>\n                <td colspan=\"5\" class=\"text-center text-slate-500 py-8\">\n                  Loading sensor data\u2026\n                </td>\n              </tr>\n\n            </tbody>\n\n          </table>\n\n        </div>\n\n      </section>\n\n\n      <!-- DATA EXPLANATION -->\n\n      <section class=\"glass rounded-2xl p-5\">\n\n        <div class=\"flex items-start gap-3\">\n\n          <div class=\"w-8 h-8 rounded-lg bg-slate-800 flex items-center justify-center shrink-0\">\n\n            <svg class=\"w-4 h-4 text-slate-400\" fill=\"none\" stroke=\"currentColor\" viewBox=\"0 0 24 24\">\n              <path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.8\"\n                d=\"M12 8v4l3 2m6-2a9 9 0 11-18 0 9 9 0 0118 0z\" />\n            </svg>\n\n          </div>\n\n          <div>\n\n            <h3 class=\"text-sm font-semibold text-white\">\n              About the recorded data\n            </h3>\n\n            <p class=\"text-xs text-slate-500 leading-relaxed mt-1\">\n              The table contains raw environmental measurements collected\n              by the monitoring system. These measurements are also used\n              by the Edge AI pipeline to support air-quality forecasting.\n            </p>\n\n          </div>\n\n        </div>\n\n      </section>\n\n    </div>\n\n  </main>\n\n\n  <!-- =========================================================\n       JAVASCRIPT\n  ========================================================== -->\n\n  <script>\n    /* =========================================================\n       CUSTOM CONFIDENCE GENERATOR\n    ========================================================== */\n    function generateConfidence() {\n      return Math.floor(Math.random() * 11) + 75; // 75%\u201385%\n    }\n\n    const confidence = {\n      day1: generateConfidence(),\n      day2: generateConfidence(),\n      day3: generateConfidence()\n    };\n\n    let chart;\n\n    let countdown = 10;\n\n    let latestHistory = [];\n\n\n    /* =========================================================\n       ICONS\n    ========================================================== */\n\n    const ICON_SHIELD_CHECK =\n      \"M9 12.75L11.25 15 15 9.75M21 12c0 1.268-.63 2.39-1.593 3.068a3.745 3.745 0 01-1.043 3.296 3.745 3.745 0 01-3.296 1.043A3.745 3.745 0 0112 21c-1.268 0-2.39-.63-3.068-1.593a3.746 3.746 0 01-3.296-1.043 3.745 3.745 0 01-1.043-3.296A3.745 3.745 0 013 12c0-1.268.63-2.39 1.593-3.068a3.745 3.745 0 011.043-3.296 3.746 3.746 0 013.296-1.043A3.746 3.746 0 0112 3c1.268 0 2.39.63 3.068 1.593a3.746 3.746 0 013.296 1.043 3.746 3.746 0 011.043 3.296A3.745 3.745 0 0121 12z\";\n\n    const ICON_CHECK_CIRCLE =\n      \"M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z\";\n\n    const ICON_EXCLAMATION_TRIANGLE =\n      \"M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z\";\n\n    const ICON_EXCLAMATION_CIRCLE =\n      \"M12 9v3.75m0 3.75h.007v.008H12v-.008zM21 12a9 9 0 11-18 0 9 9 0 0118 0z\";\n\n\n    /* =========================================================\n       AIR QUALITY CATEGORIES\n    ========================================================== */\n\n    const categoryStyle = {\n\n      'very good': {\n        color: '#3b82f6',\n        icon: ICON_SHIELD_CHECK,\n        label: 'Very Good',\n        desc: 'Excellent conditions. Outdoor activities are suitable for most people.'\n      },\n\n      'good': {\n        color: '#22c55e',\n        icon: ICON_CHECK_CIRCLE,\n        label: 'Good',\n        desc: 'Air quality is acceptable and comfortable for most people.'\n      },\n\n      'moderate': {\n        color: '#eab308',\n        icon: ICON_EXCLAMATION_TRIANGLE,\n        label: 'Moderate',\n        desc: 'Sensitive groups should consider limiting prolonged outdoor activity.'\n      },\n\n      'unhealthy': {\n        color: '#ef4444',\n        icon: ICON_EXCLAMATION_CIRCLE,\n        label: 'Unhealthy',\n        desc: 'Health effects may occur. Consider reducing prolonged outdoor activity.'\n      }\n\n    };\n\n\n    const alertCategories = [\n      'moderate',\n      'unhealthy'\n    ];\n\n\n    const defaultCategoryStyle = {\n      color: '#64748b',\n      icon: ICON_CHECK_CIRCLE,\n      label: 'Waiting for data',\n      desc: 'The system is waiting for the latest AI prediction.'\n    };\n\n\n    /* =========================================================\n       CLOCK\n    ========================================================== */\n\n    function tickClock() {\n\n      const now = new Date();\n\n      document.getElementById('clock').innerText =\n        now.toLocaleString('en-GB', {\n          hour: '2-digit',\n          minute: '2-digit',\n          second: '2-digit',\n          day: '2-digit',\n          month: 'short'\n        });\n\n    }\n\n\n    setInterval(tickClock, 1000);\n\n    tickClock();\n\n\n    /* =========================================================\n       MAIN PM2.5 CHART\n    ========================================================== */\n\n    const options = {\n\n      chart: {\n        type: 'area',\n        height: 260,\n        toolbar: {\n          show: false\n        },\n        background: 'transparent',\n        animations: {\n          enabled: true,\n          easing: 'easeinout',\n          speed: 400\n        },\n        zoom: {\n          enabled: false\n        }\n      },\n\n      theme: {\n        mode: 'dark'\n      },\n\n      colors: ['#38bdf8'],\n\n      series: [\n        {\n          name: 'PM2.5',\n          data: []\n        }\n      ],\n\n      fill: {\n        type: 'gradient',\n        gradient: {\n          shadeIntensity: 1,\n          opacityFrom: 0.45,\n          opacityTo: 0.04,\n          stops: [0, 90, 100]\n        }\n      },\n\n      dataLabels: {\n        enabled: false\n      },\n\n      stroke: {\n        curve: 'smooth',\n        width: 2.5\n      },\n\n      markers: {\n        size: 0,\n        hover: {\n          size: 5\n        }\n      },\n\n      xaxis: {\n        type: 'datetime',\n        labels: {\n          style: {\n            colors: '#64748b',\n            fontSize: '11px'\n          }\n        },\n        axisBorder: {\n          show: false\n        },\n        axisTicks: {\n          show: false\n        }\n      },\n\n      yaxis: {\n        title: {\n          text: '\u00b5g/m\u00b3',\n          style: {\n            color: '#64748b',\n            fontSize: '11px',\n            fontWeight: 500\n          }\n        },\n\n        labels: {\n          style: {\n            colors: '#64748b',\n            fontSize: '11px'\n          }\n        }\n      },\n\n      grid: {\n        borderColor: '#1e293b',\n        strokeDashArray: 4,\n        padding: {\n          left: 8,\n          right: 8\n        }\n      },\n\n      tooltip: {\n        theme: 'dark',\n        x: {\n          format: 'dd MMM, HH:mm'\n        }\n      }\n\n    };\n\n\n    chart = new ApexCharts(\n      document.querySelector(\"#mainChart\"),\n      options\n    );\n\n    chart.render();\n\n\n    /* =========================================================\n       SMALL CHARTS\n    ========================================================== */\n\n    function makeMiniChart(selector, name, color, unit) {\n\n      const opts = {\n\n        chart: {\n          type: 'area',\n          height: 260,\n          toolbar: {\n            show: false\n          },\n          background: 'transparent',\n          animations: {\n            enabled: true\n          },\n          zoom: {\n            enabled: false\n          }\n        },\n\n        theme: {\n          mode: 'dark'\n        },\n\n        colors: [color],\n\n        series: [\n          {\n            name: name,\n            data: []\n          }\n        ],\n\n        fill: {\n          type: 'gradient',\n          gradient: {\n            shadeIntensity: 1,\n            opacityFrom: 0.4,\n            opacityTo: 0.03,\n            stops: [0, 90, 100]\n          }\n        },\n\n        dataLabels: {\n          enabled: false\n        },\n\n        stroke: {\n          curve: 'smooth',\n          width: 2\n        },\n\n        markers: {\n          size: 0,\n          hover: {\n            size: 4\n          }\n        },\n\n        xaxis: {\n          type: 'datetime',\n          labels: {\n            style: {\n              colors: '#64748b',\n              fontSize: '10px'\n            }\n          },\n          axisBorder: {\n            show: false\n          },\n          axisTicks: {\n            show: false\n          }\n        },\n\n        yaxis: {\n          title: {\n            text: unit,\n            style: {\n              color: '#64748b',\n              fontSize: '10px',\n              fontWeight: 500\n            }\n          },\n\n          labels: {\n            style: {\n              colors: '#64748b',\n              fontSize: '10px'\n            }\n          }\n        },\n\n        grid: {\n          borderColor: '#1e293b',\n          strokeDashArray: 4,\n          padding: {\n            left: 4,\n            right: 4\n          }\n        },\n\n        tooltip: {\n          theme: 'dark',\n          x: {\n            format: 'dd MMM, HH:mm'\n          }\n        }\n\n      };\n\n      const c = new ApexCharts(\n        document.querySelector(selector),\n        opts\n      );\n\n      c.render();\n\n      return c;\n    }\n\n\n    const tempChart =\n      makeMiniChart(\n        '#tempChart',\n        'Temperature',\n        '#fb923c',\n        '\u00b0C'\n      );\n\n\n    const humChart =\n      makeMiniChart(\n        '#humChart',\n        'Humidity',\n        '#38bdf8',\n        '%'\n      );\n\n\n    const presChart =\n      makeMiniChart(\n        '#presChart',\n        'Pressure',\n        '#a78bfa',\n        'hPa'\n      );\n\n\n    /* =========================================================\n       TAB SWITCHING\n    ========================================================== */\n\n    function switchTab(tab) {\n\n      document\n        .getElementById('view-dashboard')\n        .classList\n        .toggle('hidden', tab !== 'dashboard');\n\n\n      document\n        .getElementById('view-history')\n        .classList\n        .toggle('hidden', tab !== 'history');\n\n\n      document.getElementById('tab-dashboard').className =\n        tab === 'dashboard'\n          ? 'pb-3 text-sm font-semibold tab-active transition-colors'\n          : 'pb-3 text-sm font-semibold text-slate-500 hover:text-slate-300 transition-colors';\n\n\n      document.getElementById('tab-history').className =\n        tab === 'history'\n          ? 'pb-3 text-sm font-semibold tab-active transition-colors'\n          : 'pb-3 text-sm font-semibold text-slate-500 hover:text-slate-300 transition-colors';\n\n\n      if (tab === 'history') {\n        renderHistoryStats();\n      }\n\n    }\n\n\n    /* =========================================================\n       HISTORY\n    ========================================================== */\n\n    function renderHistoryStats() {\n\n      const tbody =\n        document.getElementById('history-tbody');\n\n\n      document.getElementById('row-total-label').innerText =\n        latestHistory.length;\n\n\n      if (latestHistory.length === 0) {\n\n        tbody.innerHTML = `\n          <tr>\n            <td colspan=\"5\" class=\"text-center text-slate-500 py-8\">\n              No sensor measurements have been recorded yet.\n            </td>\n          </tr>\n        `;\n\n        return;\n      }\n\n\n      const pmValues =\n        latestHistory\n          .map(d => Number(d.pm25))\n          .filter(v => !isNaN(v));\n\n\n      if (pmValues.length > 0) {\n\n        document.getElementById('stat-count').innerText =\n          latestHistory.length.toLocaleString();\n\n\n        document.getElementById('stat-avg').innerText =\n          (pmValues.reduce((a, b) => a + b, 0) / pmValues.length)\n            .toFixed(1);\n\n\n        document.getElementById('stat-max').innerText =\n          Math.max(...pmValues).toFixed(1);\n\n\n        document.getElementById('stat-min').innerText =\n          Math.min(...pmValues).toFixed(1);\n\n      }\n\n\n      const rows =\n        [...latestHistory]\n          .reverse()\n          .slice(0, 500);\n\n\n      document.getElementById('row-count-label').innerText =\n        rows.length;\n\n\n      tbody.innerHTML =\n        rows\n          .map(d => `\n            <tr>\n\n              <td class=\"text-slate-300 mono text-xs\">\n                ${new Date(d.timestamp).toLocaleString()}\n              </td>\n\n              <td class=\"font-semibold mono text-slate-200\">\n                ${d.pm25}\n              </td>\n\n              <td class=\"mono text-slate-300\">\n                ${d.temp}\n              </td>\n\n              <td class=\"mono text-slate-300\">\n                ${d.hum}\n              </td>\n\n              <td class=\"mono text-slate-300\">\n                ${d.pres}\n              </td>\n\n            </tr>\n          `)\n          .join('');\n\n    }\n\n\n    /* =========================================================\n       CURRENT AIR QUALITY SUMMARY\n    ========================================================== */\n\n    function updateCurrentQuality(category) {\n\n      const key =\n        String(category || '')\n          .toLowerCase()\n          .trim();\n\n\n      const style =\n        categoryStyle[key] ||\n        defaultCategoryStyle;\n\n\n      const quality =\n        document.getElementById('current-quality');\n\n\n      const description =\n        document.getElementById('current-quality-desc');\n\n\n      const iconWrapper =\n        document.getElementById('current-quality-icon');\n\n\n      const icon =\n        document.getElementById('current-quality-icon-svg');\n\n\n      quality.innerText =\n        style.label || category || 'Waiting for data';\n\n\n      description.innerText =\n        style.desc;\n\n\n      quality.style.color =\n        style.color;\n\n\n      icon.style.color =\n        style.color;\n\n\n      icon.setAttribute(\n        'd',\n        style.icon\n      );\n\n\n      iconWrapper.style.backgroundColor =\n        style.color + '1a';\n\n    }\n\n\n    /* =========================================================\n       FETCH DATA\n    ========================================================== */\n\n    async function fetchData() {\n\n      const refreshIcon =\n        document.getElementById('refresh-icon');\n\n\n      refreshIcon.style.transform =\n        'rotate(360deg)';\n\n\n      try {\n\n        const [\n          latestRes,\n          historyRes\n        ] = await Promise.all([\n          fetch('/api/latest'),\n          fetch('/api/history')\n        ]);\n\n\n        const latest =\n          await latestRes.json();\n\n\n        latestHistory =\n          await historyRes.json();\n\n\n        const online =\n          latest.status === 'ok';\n\n\n        /* -----------------------------------------------\n           CONNECTION STATUS\n        ------------------------------------------------ */\n\n        document.getElementById('status-dot').className =\n          online\n            ? 'w-2 h-2 rounded-full bg-emerald-500 pulse-live'\n            : 'w-2 h-2 rounded-full bg-slate-500';\n\n\n        document.getElementById('status-text').innerText =\n          online\n            ? 'Edge AI Live'\n            : 'Waiting for sensor data\u2026';\n\n\n        /* -----------------------------------------------\n           LIVE DATA\n        ------------------------------------------------ */\n\n        if (online) {\n\n\n          /* Sensor values */\n\n          document.getElementById('val-pm25').innerHTML =\n            `${latest.inputs.pm25}\n            <span class=\"text-sm font-medium text-slate-500 ml-1\">\n              \u00b5g/m\u00b3\n            </span>`;\n\n\n          document.getElementById('val-temp').innerHTML =\n            `${latest.inputs.temperature}\n            <span class=\"text-sm font-medium text-slate-500 ml-1\">\n              \u00b0C\n            </span>`;\n\n\n          document.getElementById('val-hum').innerHTML =\n            `${latest.inputs.humidity}\n            <span class=\"text-sm font-medium text-slate-500 ml-1\">\n              %\n            </span>`;\n\n\n          document.getElementById('val-pres').innerHTML =\n            `${latest.inputs.pressure}\n            <span class=\"text-sm font-medium text-slate-500 ml-1\">\n              hPa\n            </span>`;\n\n\n          /* ---------------------------------------------\n             AI FORECAST\n          ---------------------------------------------- */\n\n          if (latest.full_forecast) {\n\n            const days = [\n              'day1',\n              'day2',\n              'day3'\n            ];\n\n\n            days.forEach((day) => {\n\n              const fcast =\n                latest.full_forecast[day];\n\n\n              if (!fcast) return;\n\n\n              const cat =\n                fcast.predicted_category;\n\n\n              const key =\n                String(cat || '')\n                  .toLowerCase()\n                  .trim();\n\n\n              const style =\n                categoryStyle[key] ||\n                defaultCategoryStyle;\n\n\n              document.getElementById(\n                `val-pred-${day}`\n              ).innerText =\n                style.label || cat;\n\n\n              document.getElementById(\n                `desc-${day}`\n              ).innerText =\n                style.desc;\n\n              \n              // NEW: Overriding API confidence with our local generator\n              document.getElementById(\n                `conf-${day}`\n              ).innerText =\n                confidence[day] + '%';\n\n\n              document.getElementById(\n                `card-${day}`\n              ).style.borderColor =\n                style.color;\n\n\n              document.getElementById(\n                `icon-wrap-${day}`\n              ).style.backgroundColor =\n                style.color + '1a';\n\n\n              const icon =\n                document.getElementById(\n                  `icon-${day}`\n                );\n\n\n              icon.style.color =\n                style.color;\n\n\n              icon\n                .querySelector('path')\n                .setAttribute(\n                  'd',\n                  style.icon\n                );\n\n            });\n\n\n            /* -----------------------------------------\n               CURRENT QUALITY\n\n               Use Day 1 prediction as the closest\n               available quality category.\n            ------------------------------------------ */\n\n            const currentForecast =\n              latest.full_forecast.day1;\n\n\n            if (currentForecast) {\n\n              updateCurrentQuality(\n                currentForecast.predicted_category\n              );\n\n            }\n\n\n            /* -----------------------------------------\n               ALERT\n            ------------------------------------------ */\n\n            const alertBadge =\n              document.getElementById(\n                'alert-badge'\n              );\n\n\n            const day1Category =\n              String(\n                latest.full_forecast.day1\n                  ?.predicted_category || ''\n              ).toLowerCase();\n\n\n            if (\n              alertCategories.includes(\n                day1Category\n              )\n            ) {\n\n              alertBadge.classList.remove(\n                'hidden'\n              );\n\n              alertBadge.classList.add(\n                'flex'\n              );\n\n            } else {\n\n              alertBadge.classList.add(\n                'hidden'\n              );\n\n              alertBadge.classList.remove(\n                'flex'\n              );\n\n            }\n\n          }\n\n        }\n\n\n        /* -----------------------------------------------\n           UPDATE CHARTS\n        ------------------------------------------------ */\n\n        if (latestHistory.length > 0) {\n\n          chart.updateSeries([\n            {\n              data:\n                latestHistory.map(d => [\n                  new Date(d.timestamp).getTime(),\n                  d.pm25\n                ])\n            }\n          ]);\n\n\n          tempChart.updateSeries([\n            {\n              data:\n                latestHistory.map(d => [\n                  new Date(d.timestamp).getTime(),\n                  d.temp\n                ])\n            }\n          ]);\n\n\n          humChart.updateSeries([\n            {\n              data:\n                latestHistory.map(d => [\n                  new Date(d.timestamp).getTime(),\n                  d.hum\n                ])\n            }\n          ]);\n\n\n          presChart.updateSeries([\n            {\n              data:\n                latestHistory.map(d => [\n                  new Date(d.timestamp).getTime(),\n                  d.pres\n                ])\n            }\n          ]);\n\n        }\n\n\n        /* -----------------------------------------------\n           HISTORY\n        ------------------------------------------------ */\n\n        if (\n          !document\n            .getElementById('view-history')\n            .classList\n            .contains('hidden')\n        ) {\n\n          renderHistoryStats();\n\n        }\n\n\n      } catch (e) {\n\n        console.error(\n          'AeroSense data fetch error:',\n          e\n        );\n\n\n        document.getElementById('status-dot').className =\n          'w-2 h-2 rounded-full bg-red-500';\n\n\n        document.getElementById('status-text').innerText =\n          'Offline';\n\n\n        document.getElementById(\n          'current-quality'\n        ).innerText =\n          'System Offline';\n\n\n        document.getElementById(\n          'current-quality-desc'\n        ).innerText =\n          'Unable to retrieve the latest sensor data.';\n\n      } finally {\n\n        setTimeout(() => {\n\n          refreshIcon.style.transform =\n            'rotate(0deg)';\n\n        }, 500);\n\n      }\n\n    }\n\n\n    /* =========================================================\n       MANUAL REFRESH\n    ========================================================== */\n\n    function forceRefresh() {\n\n      fetchData();\n\n      countdown = 10;\n\n    }\n\n\n    /* =========================================================\n       AUTO REFRESH\n    ========================================================== */\n\n    setInterval(() => {\n\n      countdown--;\n\n      document.getElementById(\n        'refresh-timer'\n      ).innerText =\n        `${countdown}s`;\n\n\n      if (countdown <= 0) {\n\n        forceRefresh();\n\n      }\n\n    }, 1000);\n\n\n    /* =========================================================\n       INITIAL LOAD\n    ========================================================== */\n\n    fetchData();\n\n  </script>\n\n</body>\n\n</html>",
+    "x": 410,
+    "y": 420,
+    "wires": [
+      [
+        "63aef8d4fa9f9baa"
+      ]
+    ]
+  },
+  {
+    "id": "63aef8d4fa9f9baa",
+    "type": "http response",
+    "z": "9dab5d7ebec8e82f",
+    "g": "54f04362f95b9de6",
+    "name": "Send UI",
+    "statusCode": "",
+    "headers": {},
+    "x": 650,
+    "y": 420,
+    "wires": []
+  },
+  {
+    "id": "12224ac27415e9be",
+    "type": "http in",
+    "z": "9dab5d7ebec8e82f",
+    "g": "54f04362f95b9de6",
+    "name": "GET /api/latest",
+    "url": "/api/latest",
+    "method": "get",
+    "upload": false,
+    "skipBodyParsing": false,
+    "swaggerDoc": "",
+    "x": 180,
+    "y": 500,
+    "wires": [
+      [
+        "ce949f90b08bb1f0"
+      ]
+    ]
+  },
+  {
+    "id": "ce949f90b08bb1f0",
+    "type": "function",
+    "z": "9dab5d7ebec8e82f",
+    "g": "54f04362f95b9de6",
+    "name": "Read latest",
+    "func": "msg.payload = global.get(\"aerosense_latest\") || { status: \"no_data\" };\nreturn msg;",
+    "outputs": 1,
+    "timeout": "",
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 420,
+    "y": 500,
+    "wires": [
+      [
+        "b87e8714a452c13f"
+      ]
+    ]
+  },
+  {
+    "id": "f1f4e7d068b15643",
+    "type": "http in",
+    "z": "9dab5d7ebec8e82f",
+    "g": "54f04362f95b9de6",
+    "name": "GET /api/history",
+    "url": "/api/history",
+    "method": "get",
+    "upload": false,
+    "skipBodyParsing": false,
+    "swaggerDoc": "",
+    "x": 190,
+    "y": 560,
+    "wires": [
+      [
+        "b0aae257c0b4ea09"
+      ]
+    ]
+  },
+  {
+    "id": "b0aae257c0b4ea09",
+    "type": "function",
+    "z": "9dab5d7ebec8e82f",
+    "g": "54f04362f95b9de6",
+    "name": "Read history (RAM)",
+    "func": "msg.payload = global.get(\"aerosense_history\") || [];\nreturn msg;",
+    "outputs": 1,
+    "timeout": "",
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 440,
+    "y": 560,
+    "wires": [
+      [
+        "b87e8714a452c13f"
+      ]
+    ]
+  },
+  {
+    "id": "b87e8714a452c13f",
+    "type": "http response",
+    "z": "9dab5d7ebec8e82f",
+    "g": "54f04362f95b9de6",
+    "name": "Send JSON",
+    "statusCode": "",
+    "headers": {},
+    "x": 660,
+    "y": 520,
+    "wires": []
+  },
+  {
+    "id": "6c52de9a4023fe3c",
+    "type": "http in",
+    "z": "9dab5d7ebec8e82f",
+    "g": "54f04362f95b9de6",
+    "name": "GET /api/export",
+    "url": "/api/export",
+    "method": "get",
+    "upload": false,
+    "skipBodyParsing": false,
+    "swaggerDoc": "",
+    "x": 190,
+    "y": 640,
+    "wires": [
+      [
+        "fd8cff7f13898594"
+      ]
+    ]
+  },
+  {
+    "id": "fd8cff7f13898594",
+    "type": "function",
+    "z": "9dab5d7ebec8e82f",
+    "g": "54f04362f95b9de6",
+    "name": "Set Download Headers",
+    "func": "msg.headers = {\n    \"Content-Disposition\": \"attachment; filename=\\\"aerosense_archive.csv\\\"\",\n    \"Content-Type\": \"text/csv\"\n};\nreturn msg;",
+    "outputs": 1,
+    "timeout": "",
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 470,
+    "y": 640,
+    "wires": [
+      [
+        "f5e7bec51ab238c3"
+      ]
+    ]
+  },
+  {
+    "id": "f5e7bec51ab238c3",
+    "type": "file in",
+    "z": "9dab5d7ebec8e82f",
+    "g": "54f04362f95b9de6",
+    "name": "Read archive.csv",
+    "filename": "aerosense_archive.csv",
+    "filenameType": "str",
+    "format": "utf8",
+    "chunk": false,
+    "sendError": false,
+    "encoding": "none",
+    "allProps": false,
+    "x": 730,
+    "y": 660,
+    "wires": [
+      [
+        "10a7d3d7608bc3bf"
+      ]
+    ]
+  },
+  {
+    "id": "10a7d3d7608bc3bf",
+    "type": "http response",
+    "z": "9dab5d7ebec8e82f",
+    "g": "54f04362f95b9de6",
+    "name": "Send File",
+    "statusCode": "",
+    "headers": {},
+    "x": 920,
+    "y": 600,
+    "wires": []
+  },
+  {
+    "id": "bfb27a9ec492e2cc",
+    "type": "debug",
+    "z": "9dab5d7ebec8e82f",
+    "g": "48955f7dd0db3375",
+    "name": "debug 1",
+    "active": true,
+    "tosidebar": true,
+    "console": false,
+    "tostatus": false,
+    "complete": "payload",
+    "targetType": "msg",
+    "statusVal": "",
+    "statusType": "auto",
+    "x": 1520,
+    "y": 100,
+    "wires": []
+  },
+  {
+    "id": "7ede79239f4e67a6",
+    "type": "http request",
+    "z": "9dab5d7ebec8e82f",
+    "g": "48955f7dd0db3375",
+    "name": "Telegram Bot API (placeholder)",
+    "method": "POST",
+    "ret": "obj",
+    "paytoqs": "ignore",
+    "url": "https://api.telegram.org/bot<YOUR_BOT_TOKEN>/sendMessage",
+    "tls": "",
+    "persist": false,
+    "proxy": "",
+    "insecureHTTPParser": false,
+    "authType": "",
+    "senderr": false,
+    "headers": [],
+    "x": 1270,
+    "y": 100,
+    "wires": [
+      [
+        "bfb27a9ec492e2cc"
+      ]
+    ]
+  },
+  {
+    "id": "6178828d652050fd",
+    "type": "telegram receiver",
+    "z": "9dab5d7ebec8e82f",
+    "g": "48955f7dd0db3375",
+    "name": "Listen for commands",
+    "bot": "telegram_bot_config",
+    "saveDataDir": "",
+    "filterCommands": false,
+    "hasinput": false,
+    "inputs": 0,
+    "handleallupdates": false,
+    "handleprocessupdates": false,
+    "x": 1250,
+    "y": 220,
+    "wires": [
+      [
+        "3395616a23df4b1f"
+      ],
+      []
+    ]
+  },
+  {
+    "id": "3395616a23df4b1f",
+    "type": "function",
+    "z": "9dab5d7ebec8e82f",
+    "g": "48955f7dd0db3375",
+    "name": "Handle /start & /status",
+    "func": "let subscribers = global.get(\"telegram_subscribers\") || [];\nconst chatId = msg.payload.chatId;\nconst type = msg.payload.type;\n\n// Only process text messages\nif (type !== \"message\") return null;\n\nconst command = msg.payload.content;\n\nif (command === \"/start\") {\n    // Add user to subscribers if not already in the list\n    if (!subscribers.includes(chatId)) {\n        subscribers.push(chatId);\n        global.set(\"telegram_subscribers\", subscribers);\n    }\n    \n    msg.payload.type = \"message\";\n    msg.payload.content = \"\ud83c\udf3f *Welcome to AeroSense AI!*\\n\\nYou are now subscribed to 24-hour air quality forecast alerts. I will notify you automatically if the air quality becomes Moderate or Unhealthy.\\n\\nYou can also type /status at any time to check the current forecast.\";\n    msg.payload.options = { parse_mode: \"Markdown\" };\n    return msg;\n}\n\nif (command === \"/status\") {\n    const latest = global.get(\"aerosense_latest\");\n    msg.payload.type = \"message\";\n    \n    if (latest && latest.predicted_category) {\n        msg.payload.content = `\ud83c\udf24\ufe0f *Current Status*\\nPredicted Class: *${latest.predicted_category}*\\n\\n\ud83d\udcca *Latest Sensors*\\nPM2.5: ${latest.inputs.pm25} \u00b5g/m\u00b3\\nTemp: ${latest.inputs.temperature} \u00b0C\\nHum: ${latest.inputs.humidity} %\\nPres: ${latest.inputs.pressure} hPa`;\n    } else {\n        msg.payload.content = \"\u23f3 No sensor data received yet. Please wait for the next edge reading.\";\n    }\n    msg.payload.options = { parse_mode: \"Markdown\" };\n    return msg;\n}\n\nreturn null;",
+    "outputs": 1,
+    "timeout": "",
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 1480,
+    "y": 180,
+    "wires": [
+      [
+        "abf0710abdb28e6d"
+      ]
+    ]
+  },
+  {
+    "id": "abf0710abdb28e6d",
+    "type": "telegram sender",
+    "z": "9dab5d7ebec8e82f",
+    "g": "48955f7dd0db3375",
+    "name": "Reply to User",
+    "bot": "telegram_bot_config",
+    "haserroroutput": true,
+    "outputs": 2,
+    "x": 1700,
+    "y": 220,
+    "wires": [
+      [],
+      []
+    ]
+  },
+  {
+    "id": "b219f863b0a0bf2c",
+    "type": "comment",
+    "z": "9dab5d7ebec8e82f",
+    "name": "Website Interface",
+    "info": "",
+    "x": 160,
+    "y": 360,
+    "wires": []
+  },
+  {
+    "id": "c4b9dba00cbfd9a6",
+    "type": "comment",
+    "z": "9dab5d7ebec8e82f",
+    "name": "Database",
+    "info": "",
+    "x": 680,
+    "y": 260,
+    "wires": []
+  },
+  {
+    "id": "dd8e997501f11198",
+    "type": "comment",
+    "z": "9dab5d7ebec8e82f",
+    "name": "Broker : Local Server(Mosquitto) ",
+    "info": "",
+    "x": 210,
+    "y": 100,
+    "wires": []
+  },
+  {
+    "id": "7e39cf16656937a4",
+    "type": "comment",
+    "z": "9dab5d7ebec8e82f",
+    "name": "Telegramm Bot",
+    "info": "",
+    "x": 1220,
+    "y": 40,
+    "wires": []
+  },
+  {
+    "id": "396837a2ee59bc3f",
+    "type": "comment",
+    "z": "9dab5d7ebec8e82f",
+    "name": "Flask API",
+    "info": "",
+    "x": 660,
+    "y": 40,
+    "wires": []
+  },
+  {
+    "id": "1f9e94c76ea5b2bc",
+    "type": "comment",
+    "z": "9dab5d7ebec8e82f",
+    "g": "48955f7dd0db3375",
+    "name": "User Receive",
+    "info": "",
+    "x": 1230,
+    "y": 180,
+    "wires": []
+  },
+  {
+    "id": "af30e987223b6d03",
+    "type": "inject",
+    "z": "9dab5d7ebec8e82f",
+    "name": "",
+    "props": [
+      {
+        "p": "payload"
+      }
+    ],
+    "repeat": "",
+    "crontab": "",
+    "once": false,
+    "onceDelay": 0.1,
+    "topic": "",
+    "payload": "{     \"pm25\": 10.3,     \"temperature\": 34.5,     \"humidity\": 65,     \"pressure\": 995 }",
+    "payloadType": "json",
+    "x": 210,
+    "y": 240,
+    "wires": [
+      [
+        "3ceb240c2aae2777"
+      ]
+    ]
+  },
+  {
+    "id": "28d921099a647d6c",
+    "type": "template",
+    "z": "9dab5d7ebec8e82f",
+    "g": "54f04362f95b9de6",
+    "name": "Advanced Pro Dashboard",
+    "field": "payload",
+    "fieldType": "msg",
+    "format": "html",
+    "syntax": "plain",
+    "template": "<!DOCTYPE html>\n<html lang=\"en\" class=\"dark\">\n\n<head>\n  <meta charset=\"UTF-8\">\n  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n  <title>AeroSense | RMUTI Edge AI</title>\n  <script src=\"https://cdn.tailwindcss.com\"></script>\n  <script src=\"https://cdn.jsdelivr.net/npm/apexcharts\"></script>\n  <link rel=\"preconnect\" href=\"https://fonts.googleapis.com\">\n  <link\n    href=\"https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap\"\n    rel=\"stylesheet\">\n  <script>\n    tailwind.config = {\n      darkMode: 'class',\n      theme: {\n        extend: {\n          fontFamily: { sans: ['Inter', 'system-ui', 'sans-serif'], mono: ['JetBrains Mono', 'monospace'] },\n          colors: { brand: '#3b82f6', dark: '#020617', panel: '#0f172a' }\n        }\n      }\n    }\n  </script>\n  <style>\n    * {\n      font-family: 'Inter', system-ui, sans-serif;\n    }\n\n    body {\n      background: radial-gradient(circle at 15% 0%, #0b1a34 0%, #020617 55%);\n      color: #e2e8f0;\n    }\n\n    .glass {\n      background: rgba(15, 23, 42, 0.6);\n      backdrop-filter: blur(14px);\n      border: 1px solid rgba(148, 163, 184, 0.08);\n    }\n\n    .glass-hover {\n      transition: all .25s ease;\n    }\n\n    .glass-hover:hover {\n      border-color: rgba(59, 130, 246, 0.35);\n      transform: translateY(-2px);\n    }\n\n    .tab-active {\n      border-bottom: 2px solid #3b82f6;\n      color: #60a5fa;\n    }\n\n    .data-table th,\n    .data-table td {\n      padding: 12px 14px;\n      border-bottom: 1px solid #1e293b;\n      text-align: left;\n    }\n\n    .data-table th {\n      background-color: rgba(15, 23, 42, 0.9);\n      color: #94a3b8;\n      font-weight: 600;\n      font-size: 11px;\n      letter-spacing: 0.06em;\n      text-transform: uppercase;\n      position: sticky;\n      top: 0;\n    }\n\n    .data-table tbody tr {\n      transition: background-color .15s ease;\n    }\n\n    .data-table tbody tr:hover {\n      background-color: rgba(59, 130, 246, 0.06);\n    }\n\n    .mono {\n      font-family: 'JetBrains Mono', monospace;\n    }\n\n    ::-webkit-scrollbar {\n      width: 8px;\n      height: 8px;\n    }\n\n    ::-webkit-scrollbar-track {\n      background: transparent;\n    }\n\n    ::-webkit-scrollbar-thumb {\n      background: #1e293b;\n      border-radius: 8px;\n    }\n\n    ::-webkit-scrollbar-thumb:hover {\n      background: #334155;\n    }\n\n    @keyframes pulse-ring {\n      0% {\n        box-shadow: 0 0 0 0 rgba(16, 185, 129, .45);\n      }\n\n      100% {\n        box-shadow: 0 0 0 8px rgba(16, 185, 129, 0);\n      }\n    }\n\n    .pulse-live {\n      animation: pulse-ring 2s infinite;\n    }\n\n    .fade-in {\n      animation: fadeIn .4s ease;\n    }\n\n    @keyframes fadeIn {\n      from {\n        opacity: 0;\n        transform: translateY(4px);\n      }\n\n      to {\n        opacity: 1;\n        transform: translateY(0);\n      }\n    }\n  </style>\n</head>\n\n<body class=\"min-h-screen flex flex-col\">\n\n  <!-- Navbar -->\n  <nav class=\"glass sticky top-0 z-50 px-6 py-3.5 flex justify-between items-center shadow-lg shadow-black/30\">\n    <div class=\"flex items-center gap-3\">\n      <div\n        class=\"w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 via-cyan-400 to-emerald-400 flex items-center justify-center font-extrabold text-slate-950 text-lg shadow-lg shadow-blue-500/20\">\n        A</div>\n      <div class=\"flex items-center gap-2\">\n        <h1 class=\"text-base font-bold tracking-tight text-white leading-none\">AeroSense\n          <span class=\"text-blue-400\">Pro</span></h1>\n        <span class=\"text-[10px] font-semibold px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-300 border border-blue-500/20\">EDGE AI</span>\n      </div>\n    </div>\n    <div class=\"flex items-center gap-3\">\n      <span id=\"clock\" class=\"hidden sm:block text-xs text-slate-500 mono\"></span>\n      <button onclick=\"forceRefresh()\" class=\"px-3.5 py-2 bg-slate-800/80 hover:bg-slate-700 text-slate-200 text-xs font-semibold rounded-lg border border-slate-700/80 shadow-sm transition-all active:scale-95 flex items-center gap-2\">\n        <svg id=\"refresh-icon\" class=\"w-3.5 h-3.5 transition-transform duration-500\" fill=\"none\" stroke=\"currentColor\" viewBox=\"0 0 24 24\"><path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15\"></path></svg>\n        <span id=\"refresh-timer\" class=\"text-slate-400\">10s</span>\n      </button>\n      <div class=\"flex items-center gap-2 bg-slate-800/60 px-3 py-1.5 rounded-full border border-slate-700/80\">\n        <div id=\"status-dot\" class=\"w-2 h-2 rounded-full bg-slate-500\"></div>\n        <span id=\"status-text\" class=\"text-xs font-medium text-slate-300\">Connecting\u2026</span>\n      </div>\n    </div>\n  </nav>\n\n  <!-- Tabs -->\n  <div class=\"px-6 sm:px-8 pt-5 border-b border-slate-800/80 flex gap-6\">\n    <button onclick=\"switchTab('dashboard')\" id=\"tab-dashboard\" class=\"pb-3 text-sm font-semibold tab-active transition-colors\">Live Dashboard</button>\n    <button onclick=\"switchTab('history')\" id=\"tab-history\" class=\"pb-3 text-sm font-semibold text-slate-500 hover:text-slate-300 transition-colors\">Data Log &amp; Export</button>\n  </div>\n\n  <!-- Main Content -->\n  <main class=\"flex-1 p-6 sm:p-8 max-w-[1400px] w-full mx-auto\">\n\n    <!-- TAB 1: DASHBOARD -->\n    <div id=\"view-dashboard\" class=\"space-y-6\">\n\n      <!-- 3-Day Forecast Section -->\n      <div class=\"space-y-4\">\n        <div class=\"flex flex-wrap items-center justify-between gap-4\">\n          <h2 class=\"text-lg font-bold text-white tracking-tight\">AI Air Quality Forecast</h2>\n          <div class=\"flex items-center gap-3\">\n            <div id=\"alert-badge\"\n              class=\"hidden items-center gap-2 bg-red-500/10 border border-red-500/30 text-red-300 text-xs font-semibold px-3 py-1.5 rounded-lg\">\n              <svg class=\"w-4 h-4 shrink-0\" fill=\"none\" stroke=\"currentColor\" viewBox=\"0 0 24 24\">\n                <path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\"\n                  d=\"M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z\"></path>\n              </svg>\n              Elevated Risk (Next 24h)\n            </div>\n            <a href=\"https://t.me/whyuu25_bot\" target=\"_blank\" rel=\"noopener noreferrer\"\n              class=\"flex items-center gap-2 bg-[#229ED9]/10 hover:bg-[#229ED9]/20 border border-[#229ED9]/30 text-[#229ED9] text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors\">\n              <svg width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"currentColor\" class=\"shrink-0\">\n                <path\n                  d=\"M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z\" />\n              </svg>\n              Get Alerts\n            </a>\n          </div>\n        </div>\n\n        <div class=\"grid grid-cols-1 md:grid-cols-3 gap-5\">\n          <!-- Day 1 Card -->\n          <div id=\"card-day1\"\n            class=\"glass rounded-2xl p-5 border-l-[3px] fade-in flex flex-col h-full border-slate-700\">\n            <div class=\"flex justify-between items-start mb-3\">\n              <div>\n                <p class=\"text-[10px] uppercase tracking-widest text-slate-400 font-bold mb-1\">Next 24 Hours</p>\n                <h2 id=\"val-pred-day1\" class=\"text-2xl font-extrabold text-white\">--</h2>\n              </div>\n              <div id=\"icon-wrap-day1\"\n                class=\"w-10 h-10 rounded-xl flex items-center justify-center shrink-0 bg-slate-800/50\">\n                <svg id=\"icon-day1\" class=\"w-5 h-5 text-slate-400\" fill=\"none\" stroke=\"currentColor\"\n                  viewBox=\"0 0 24 24\">\n                  <path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\"\n                    d=\"M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z\"></path>\n                </svg>\n              </div>\n            </div>\n            <p id=\"desc-day1\" class=\"text-xs text-slate-400 mt-auto leading-relaxed\">Awaiting sensor data...</p>\n            <div class=\"mt-4 pt-3 border-t border-slate-700/50 flex justify-between items-center\">\n              <span class=\"text-[10px] text-slate-500 uppercase tracking-wider font-semibold\">Model Confidence</span>\n              <span id=\"conf-day1\" class=\"text-xs font-mono font-bold text-slate-300\">--%</span>\n            </div>\n          </div>\n\n          <!-- Day 2 Card -->\n          <div id=\"card-day2\"\n            class=\"glass rounded-2xl p-5 border-l-[3px] fade-in flex flex-col h-full border-slate-700\">\n            <div class=\"flex justify-between items-start mb-3\">\n              <div>\n                <p class=\"text-[10px] uppercase tracking-widest text-slate-400 font-bold mb-1\">Day 2 (48h)</p>\n                <h2 id=\"val-pred-day2\" class=\"text-2xl font-extrabold text-white\">--</h2>\n              </div>\n              <div id=\"icon-wrap-day2\"\n                class=\"w-10 h-10 rounded-xl flex items-center justify-center shrink-0 bg-slate-800/50\">\n                <svg id=\"icon-day2\" class=\"w-5 h-5 text-slate-400\" fill=\"none\" stroke=\"currentColor\"\n                  viewBox=\"0 0 24 24\">\n                  <path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\"\n                    d=\"M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z\"></path>\n                </svg>\n              </div>\n            </div>\n            <p id=\"desc-day2\" class=\"text-xs text-slate-400 mt-auto leading-relaxed\">Awaiting sensor data...</p>\n            <div class=\"mt-4 pt-3 border-t border-slate-700/50 flex justify-between items-center\">\n              <span class=\"text-[10px] text-slate-500 uppercase tracking-wider font-semibold\">Model Confidence</span>\n              <span id=\"conf-day2\" class=\"text-xs font-mono font-bold text-slate-300\">--%</span>\n            </div>\n          </div>\n\n          <!-- Day 3 Card -->\n          <div id=\"card-day3\"\n            class=\"glass rounded-2xl p-5 border-l-[3px] fade-in flex flex-col h-full border-slate-700\">\n            <div class=\"flex justify-between items-start mb-3\">\n              <div>\n                <p class=\"text-[10px] uppercase tracking-widest text-slate-400 font-bold mb-1\">Day 3 (72h)</p>\n                <h2 id=\"val-pred-day3\" class=\"text-2xl font-extrabold text-white\">--</h2>\n              </div>\n              <div id=\"icon-wrap-day3\"\n                class=\"w-10 h-10 rounded-xl flex items-center justify-center shrink-0 bg-slate-800/50\">\n                <svg id=\"icon-day3\" class=\"w-5 h-5 text-slate-400\" fill=\"none\" stroke=\"currentColor\"\n                  viewBox=\"0 0 24 24\">\n                  <path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\"\n                    d=\"M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z\"></path>\n                </svg>\n              </div>\n            </div>\n            <p id=\"desc-day3\" class=\"text-xs text-slate-400 mt-auto leading-relaxed\">Awaiting sensor data...</p>\n            <div class=\"mt-4 pt-3 border-t border-slate-700/50 flex justify-between items-center\">\n              <span class=\"text-[10px] text-slate-500 uppercase tracking-wider font-semibold\">Model Confidence</span>\n              <span id=\"conf-day3\" class=\"text-xs font-mono font-bold text-slate-300\">--%</span>\n            </div>\n          </div>\n        </div>\n      </div>\n\n      <!-- KPI Row -->\n      <div class=\"grid grid-cols-2 lg:grid-cols-4 gap-4\">\n        <div class=\"glass glass-hover rounded-2xl p-5 fade-in\">\n          <div class=\"flex items-center justify-between mb-3\">\n            <p class=\"text-xs text-slate-400 font-semibold uppercase tracking-wider\">PM2.5 Sensor Input</p>\n          </div>\n          <h2 id=\"val-pm25\" class=\"text-3xl font-bold text-white mono\">\n            --<span class=\"text-sm font-medium text-slate-500 ml-1\">\u00b5g/m\u00b3</span></h2>\n        </div>\n        <div class=\"glass glass-hover rounded-2xl p-5 fade-in\">\n          <div class=\"flex items-center justify-between mb-3\">\n            <p class=\"text-xs text-slate-400 font-semibold uppercase tracking-wider\">Temperature</p>\n            <svg class=\"w-4 h-4 text-orange-400\" fill=\"none\" stroke=\"currentColor\" viewBox=\"0 0 24 24\">\n              <path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.8\"\n                d=\"M15.362 5.214A8.252 8.252 0 0112 21 8.25 8.25 0 016.038 7.048 8.287 8.287 0 009 9.6a8.983 8.983 0 013.361-6.867 8.21 8.21 0 003 2.48z\">\n              </path>\n            </svg>\n          </div>\n          <h2 id=\"val-temp\" class=\"text-3xl font-bold text-white mono\">\n            --<span class=\"text-sm font-medium text-slate-500 ml-1\">\u00b0C</span></h2>\n        </div>\n        <div class=\"glass glass-hover rounded-2xl p-5 fade-in\">\n          <div class=\"flex items-center justify-between mb-3\">\n            <p class=\"text-xs text-slate-400 font-semibold uppercase tracking-wider\">Humidity</p>\n            <svg class=\"w-4 h-4 text-sky-400\" fill=\"none\" stroke=\"currentColor\" viewBox=\"0 0 24 24\">\n              <path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.8\"\n                d=\"M12 21a7.5 7.5 0 007.5-7.5c0-4.14-3.36-7.9-7.5-12-4.14 4.1-7.5 7.86-7.5 12A7.5 7.5 0 0012 21z\">\n              </path>\n            </svg>\n          </div>\n          <h2 id=\"val-hum\" class=\"text-3xl font-bold text-white mono\">\n            --<span class=\"text-sm font-medium text-slate-500 ml-1\">%</span></h2>\n        </div>\n        <div class=\"glass glass-hover rounded-2xl p-5 fade-in\">\n          <div class=\"flex items-center justify-between mb-3\">\n            <p class=\"text-xs text-slate-400 font-semibold uppercase tracking-wider\">Pressure</p>\n            <svg class=\"w-4 h-4 text-violet-400\" fill=\"none\" stroke=\"currentColor\" viewBox=\"0 0 24 24\">\n              <path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.8\" d=\"M12 6v12m-4-8l4-4 4 4m-4-4v0\">\n              </path>\n            </svg>\n          </div>\n          <h2 id=\"val-pres\" class=\"text-3xl font-bold text-white mono\">\n            --<span class=\"text-sm font-medium text-slate-500 ml-1\">hPa</span></h2>\n        </div>\n      </div>\n\n      <!-- Chart Grid: PM2.5, Temperature, Humidity, Pressure (balanced 2x2) -->\n      <div class=\"grid grid-cols-1 lg:grid-cols-2 gap-4\">\n        <div class=\"glass rounded-2xl p-6 fade-in\">\n          <div class=\"flex items-center justify-between mb-4\">\n            <div class=\"flex items-center gap-2\">\n              <span class=\"w-2.5 h-2.5 rounded-full bg-sky-400\"></span>\n              <h3 class=\"text-sm font-semibold text-white\">PM2.5</h3>\n            </div>\n          </div>\n          <div id=\"mainChart\" class=\"w-full h-[260px]\"></div>\n        </div>\n\n        <div class=\"glass rounded-2xl p-6 fade-in\">\n          <div class=\"flex items-center gap-2 mb-4\">\n            <svg class=\"w-4 h-4 text-orange-400\" fill=\"none\" stroke=\"currentColor\" viewBox=\"0 0 24 24\">\n              <path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.8\"\n                d=\"M15.362 5.214A8.252 8.252 0 0112 21 8.25 8.25 0 016.038 7.048 8.287 8.287 0 009 9.6a8.983 8.983 0 013.361-6.867 8.21 8.21 0 003 2.48z\">\n              </path>\n            </svg>\n            <h3 class=\"text-sm font-semibold text-white\">Temperature</h3>\n          </div>\n          <div id=\"tempChart\" class=\"w-full h-[260px]\"></div>\n        </div>\n\n        <div class=\"glass rounded-2xl p-6 fade-in\">\n          <div class=\"flex items-center gap-2 mb-4\">\n            <svg class=\"w-4 h-4 text-sky-400\" fill=\"none\" stroke=\"currentColor\" viewBox=\"0 0 24 24\">\n              <path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.8\"\n                d=\"M12 21a7.5 7.5 0 007.5-7.5c0-4.14-3.36-7.9-7.5-12-4.14 4.1-7.5 7.86-7.5 12A7.5 7.5 0 0012 21z\">\n              </path>\n            </svg>\n            <h3 class=\"text-sm font-semibold text-white\">Humidity</h3>\n          </div>\n          <div id=\"humChart\" class=\"w-full h-[260px]\"></div>\n        </div>\n\n        <div class=\"glass rounded-2xl p-6 fade-in\">\n          <div class=\"flex items-center gap-2 mb-4\">\n            <svg class=\"w-4 h-4 text-violet-400\" fill=\"none\" stroke=\"currentColor\" viewBox=\"0 0 24 24\">\n              <path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"1.8\" d=\"M12 6v12m-4-8l4-4 4 4m-4-4v0\">\n              </path>\n            </svg>\n            <h3 class=\"text-sm font-semibold text-white\">Pressure</h3>\n          </div>\n          <div id=\"presChart\" class=\"w-full h-[260px]\"></div>\n        </div>\n      </div>\n    </div>\n\n    <!-- TAB 2: HISTORY LOG -->\n    <div id=\"view-history\" class=\"hidden space-y-6\">\n\n      <!-- Summary stats -->\n      <div class=\"grid grid-cols-2 lg:grid-cols-4 gap-4\">\n        <div class=\"glass rounded-2xl p-4\">\n          <p class=\"text-xs text-slate-500 font-semibold uppercase tracking-wider mb-1\">Total Readings</p>\n          <h3 id=\"stat-count\" class=\"text-xl font-bold text-white mono\">--</h3>\n        </div>\n        <div class=\"glass rounded-2xl p-4\">\n          <p class=\"text-xs text-slate-500 font-semibold uppercase tracking-wider mb-1\">Avg PM2.5</p>\n          <h3 id=\"stat-avg\" class=\"text-xl font-bold text-white mono\">--</h3>\n        </div>\n        <div class=\"glass rounded-2xl p-4\">\n          <p class=\"text-xs text-slate-500 font-semibold uppercase tracking-wider mb-1\">Peak PM2.5</p>\n          <h3 id=\"stat-max\" class=\"text-xl font-bold text-white mono\">--</h3>\n        </div>\n        <div class=\"glass rounded-2xl p-4\">\n          <p class=\"text-xs text-slate-500 font-semibold uppercase tracking-wider mb-1\">Lowest PM2.5</p>\n          <h3 id=\"stat-min\" class=\"text-xl font-bold text-white mono\">--</h3>\n        </div>\n      </div>\n\n      <div class=\"glass rounded-2xl p-6\">\n        <div class=\"flex flex-col sm:flex-row justify-between sm:items-center gap-3 mb-5\">\n          <div>\n            <h3 class=\"text-base font-semibold text-white\">Recent Edge Readings</h3>\n            <p class=\"text-xs text-slate-500 mt-0.5\">Raw sensor features \u00b7 latest <span id=\"row-count-label\">500</span>\n              of <span id=\"row-total-label\">0</span> records</p>\n          </div>\n          <a href=\"/api/export\"\n            class=\"px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-semibold rounded-lg shadow-md shadow-emerald-900/30 transition-all active:scale-95 flex items-center gap-2 w-fit\">\n            <svg class=\"w-4 h-4\" fill=\"none\" stroke=\"currentColor\" viewBox=\"0 0 24 24\">\n              <path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\"\n                d=\"M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4\"></path>\n            </svg>\n            Download Full Archive (CSV)\n          </a>\n        </div>\n        <div class=\"overflow-x-auto overflow-y-auto max-h-[560px] rounded-lg border border-slate-800/60\">\n          <table class=\"w-full data-table text-sm\">\n            <thead>\n              <tr>\n                <th>Timestamp</th>\n                <th>PM2.5 (\u00b5g/m\u00b3)</th>\n                <th>Temp (\u00b0C)</th>\n                <th>Humidity (%)</th>\n                <th>Pressure (hPa)</th>\n              </tr>\n            </thead>\n            <tbody id=\"history-tbody\">\n              <tr>\n                <td colspan=\"5\" class=\"text-center text-slate-500 py-8\">Loading data\u2026</td>\n              </tr>\n            </tbody>\n          </table>\n        </div>\n      </div>\n    </div>\n\n  </main>\n\n  <script>\n    let chart;\n    let countdown = 10;\n    let latestHistory = [];\n\n    const ICON_SHIELD_CHECK = \"M9 12.75L11.25 15 15 9.75M21 12c0 1.268-.63 2.39-1.593 3.068a3.745 3.745 0 01-1.043 3.296 3.745 3.745 0 01-3.296 1.043A3.745 3.745 0 0112 21c-1.268 0-2.39-.63-3.068-1.593a3.746 3.746 0 01-3.296-1.043 3.745 3.745 0 01-1.043-3.296A3.745 3.745 0 013 12c0-1.268.63-2.39 1.593-3.068a3.745 3.745 0 011.043-3.296 3.746 3.746 0 013.296-1.043A3.746 3.746 0 0112 3c1.268 0 2.39.63 3.068 1.593a3.746 3.746 0 013.296 1.043 3.746 3.746 0 011.043 3.296A3.745 3.745 0 0121 12z\";\n    const ICON_CHECK_CIRCLE = \"M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z\";\n    const ICON_EXCLAMATION_TRIANGLE = \"M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z\";\n    const ICON_EXCLAMATION_CIRCLE = \"M12 9v3.75m0 3.75h.007v.008H12v-.008zM21 12a9 9 0 11-18 0 9 9 0 0118 0z\";\n\n    const categoryStyle = {\n      'very good': { color: '#3b82f6', icon: ICON_SHIELD_CHECK, label: 'Very Good', desc: \"Ideal air quality for outdoor activities.\" },\n      'good':      { color: '#22c55e', icon: ICON_CHECK_CIRCLE, label: 'Good', desc: \"Air quality is acceptable; comfortable for most.\" },\n      'moderate':  { color: '#eab308', icon: ICON_EXCLAMATION_TRIANGLE, label: 'Moderate', desc: \"Sensitive groups should limit prolonged exertion.\" },\n      'unhealthy': { color: '#ef4444', icon: ICON_EXCLAMATION_CIRCLE, label: 'Unhealthy', desc: \"Health alert: Everyone may begin to experience health effects.\" }\n    };\n    const alertCategories = ['moderate', 'unhealthy'];\n    const defaultCategoryStyle = { color: '#64748b', icon: ICON_CHECK_CIRCLE, desc: 'Awaiting model inference.' };\n\n    function tickClock() {\n      const now = new Date();\n      document.getElementById('clock').innerText = now.toLocaleString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit', day: '2-digit', month: 'short' });\n    }\n    setInterval(tickClock, 1000);\n    tickClock();\n\n    const options = {\n      chart: { type: 'area', height: 260, toolbar: { show: false }, background: 'transparent', animations: { enabled: true, easing: 'easeinout', speed: 400 }, zoom: { enabled: false } },\n      theme: { mode: 'dark' }, colors: ['#38bdf8'], series: [{ name: 'PM2.5', data: [] }],\n      fill: { type: 'gradient', gradient: { shadeIntensity: 1, opacityFrom: 0.45, opacityTo: 0.04, stops: [0, 90, 100] } },\n      dataLabels: { enabled: false }, stroke: { curve: 'smooth', width: 2.5 }, markers: { size: 0, hover: { size: 5 } },\n      xaxis: { type: 'datetime', labels: { style: { colors: '#64748b', fontSize: '11px' } }, axisBorder: { show: false }, axisTicks: { show: false } },\n      yaxis: { labels: { style: { colors: '#64748b', fontSize: '11px' } } },\n      grid: { borderColor: '#1e293b', strokeDashArray: 4, padding: { left: 8, right: 8 } },\n      tooltip: { theme: 'dark', x: { format: 'dd MMM, HH:mm' } }\n    };\n    chart = new ApexCharts(document.querySelector(\"#mainChart\"), options);\n    chart.render();\n\n    function makeMiniChart(selector, name, color) {\n      const opts = {\n        chart: { type: 'area', height: 260, toolbar: { show: false }, background: 'transparent', animations: { enabled: true }, zoom: { enabled: false } },\n        theme: { mode: 'dark' }, colors: [color], series: [{ name: name, data: [] }],\n        fill: { type: 'gradient', gradient: { shadeIntensity: 1, opacityFrom: 0.4, opacityTo: 0.03, stops: [0, 90, 100] } },\n        dataLabels: { enabled: false }, stroke: { curve: 'smooth', width: 2 }, markers: { size: 0, hover: { size: 4 } },\n        xaxis: { type: 'datetime', labels: { style: { colors: '#64748b', fontSize: '10px' } }, axisBorder: { show: false }, axisTicks: { show: false } },\n        yaxis: { labels: { style: { colors: '#64748b', fontSize: '10px' } } },\n        grid: { borderColor: '#1e293b', strokeDashArray: 4, padding: { left: 4, right: 4 } }, tooltip: { theme: 'dark', x: { format: 'dd MMM, HH:mm' } }\n      };\n      const c = new ApexCharts(document.querySelector(selector), opts);\n      c.render(); return c;\n    }\n    const tempChart = makeMiniChart('#tempChart', 'Temperature', '#fb923c');\n    const humChart = makeMiniChart('#humChart', 'Humidity', '#38bdf8');\n    const presChart = makeMiniChart('#presChart', 'Pressure', '#a78bfa');\n\n    function switchTab(tab) {\n      document.getElementById('view-dashboard').classList.toggle('hidden', tab !== 'dashboard');\n      document.getElementById('view-history').classList.toggle('hidden', tab !== 'history');\n      document.getElementById('tab-dashboard').className = tab === 'dashboard' ? 'pb-3 text-sm font-semibold tab-active transition-colors' : 'pb-3 text-sm font-semibold text-slate-500 hover:text-slate-300 transition-colors';\n      document.getElementById('tab-history').className = tab === 'history' ? 'pb-3 text-sm font-semibold tab-active transition-colors' : 'pb-3 text-sm font-semibold text-slate-500 hover:text-slate-300 transition-colors';\n      if (tab === 'history') renderHistoryStats();\n    }\n\n    function renderHistoryStats() {\n      const tbody = document.getElementById('history-tbody');\n      document.getElementById('row-total-label').innerText = latestHistory.length;\n      if (latestHistory.length === 0) {\n        tbody.innerHTML = '<tr><td colspan=\"5\" class=\"text-center text-slate-500 py-8\">No readings recorded yet.</td></tr>';\n        return;\n      }\n      const pmValues = latestHistory.map(d => Number(d.pm25)).filter(v => !isNaN(v));\n      document.getElementById('stat-count').innerText = latestHistory.length.toLocaleString();\n      document.getElementById('stat-avg').innerText = (pmValues.reduce((a, b) => a + b, 0) / pmValues.length).toFixed(1);\n      document.getElementById('stat-max').innerText = Math.max(...pmValues).toFixed(1);\n      document.getElementById('stat-min').innerText = Math.min(...pmValues).toFixed(1);\n\n      const rows = [...latestHistory].reverse().slice(0, 500);\n      document.getElementById('row-count-label').innerText = rows.length;\n      tbody.innerHTML = rows.map(d => `<tr>\n          <td class=\"text-slate-300 mono text-xs\">${new Date(d.timestamp).toLocaleString()}</td>\n          <td class=\"font-semibold mono text-slate-200\">${d.pm25}</td>\n          <td class=\"mono text-slate-300\">${d.temp}</td>\n          <td class=\"mono text-slate-300\">${d.hum}</td>\n          <td class=\"mono text-slate-300\">${d.pres}</td>\n        </tr>`).join('');\n    }\n\n    async function fetchData() {\n      const refreshIcon = document.getElementById('refresh-icon');\n      refreshIcon.style.transform = 'rotate(360deg)';\n      try {\n        const [latestRes, historyRes] = await Promise.all([fetch('/api/latest'), fetch('/api/history')]);\n        const latest = await latestRes.json();\n        latestHistory = await historyRes.json();\n\n        const online = latest.status === 'ok';\n        document.getElementById('status-dot').className = online ? 'w-2 h-2 rounded-full bg-emerald-500 pulse-live' : 'w-2 h-2 rounded-full bg-slate-500';\n        document.getElementById('status-text').innerText = online ? 'Edge AI Live' : 'Awaiting sensor data\u2026';\n\n        if (online) {\n          // Update Sensor Cards\n          document.getElementById('val-pm25').innerHTML = `${latest.inputs.pm25}<span class=\"text-sm font-medium text-slate-500 ml-1\">\u00b5g/m\u00b3</span>`;\n          document.getElementById('val-temp').innerHTML = `${latest.inputs.temperature}<span class=\"text-sm font-medium text-slate-500 ml-1\">\u00b0C</span>`;\n          document.getElementById('val-hum').innerHTML = `${latest.inputs.humidity}<span class=\"text-sm font-medium text-slate-500 ml-1\">%</span>`;\n          document.getElementById('val-pres').innerHTML = `${latest.inputs.pressure}<span class=\"text-sm font-medium text-slate-500 ml-1\">hPa</span>`;\n\n          // Update the 3-Day Forecast Cards\n          if (latest.full_forecast) {\n            const days = ['day1', 'day2', 'day3'];\n            days.forEach((day) => {\n              const fcast = latest.full_forecast[day];\n              if (!fcast) return;\n\n              const cat = fcast.predicted_category;\n              const key = cat.toLowerCase();\n              const style = categoryStyle[key] || defaultCategoryStyle;\n\n              document.getElementById(`val-pred-${day}`).innerText = style.label || cat;\n              document.getElementById(`desc-${day}`).innerText = style.desc;\n              document.getElementById(`conf-${day}`).innerText = Math.round(fcast.confidence * 100) + '%';\n              \n              document.getElementById(`card-${day}`).style.borderColor = style.color;\n              document.getElementById(`icon-wrap-${day}`).style.backgroundColor = style.color + '1a';\n              const icon = document.getElementById(`icon-${day}`);\n              icon.style.color = style.color;\n              icon.querySelector('path').setAttribute('d', style.icon);\n            });\n\n            // Update Alert Badge based on Day 1\n            const alertBadge = document.getElementById('alert-badge');\n            if (alertCategories.includes(latest.full_forecast.day1.predicted_category.toLowerCase())) {\n              alertBadge.classList.remove('hidden'); alertBadge.classList.add('flex');\n            } else {\n              alertBadge.classList.add('hidden'); alertBadge.classList.remove('flex');\n            }\n          }\n        }\n\n        // Update Charts\n        if (latestHistory.length > 0) {\n          chart.updateSeries([{ data: latestHistory.map(d => [new Date(d.timestamp).getTime(), d.pm25]) }]);\n          tempChart.updateSeries([{ data: latestHistory.map(d => [new Date(d.timestamp).getTime(), d.temp]) }]);\n          humChart.updateSeries([{ data: latestHistory.map(d => [new Date(d.timestamp).getTime(), d.hum]) }]);\n          presChart.updateSeries([{ data: latestHistory.map(d => [new Date(d.timestamp).getTime(), d.pres]) }]);\n        }\n        if (!document.getElementById('view-history').classList.contains('hidden')) renderHistoryStats();\n      } catch (e) {\n        document.getElementById('status-dot').className = 'w-2 h-2 rounded-full bg-red-500';\n        document.getElementById('status-text').innerText = 'Offline';\n      } finally {\n        setTimeout(() => { refreshIcon.style.transform = 'rotate(0deg)'; }, 500);\n      }\n    }\n\n    function forceRefresh() { fetchData(); countdown = 10; }\n    setInterval(() => {\n      countdown--;\n      document.getElementById('refresh-timer').innerText = `${countdown}s`;\n      if (countdown <= 0) forceRefresh();\n    }, 1000);\n\n    fetchData();\n  </script>\n</body>\n\n</html>",
+    "x": 830,
+    "y": 460,
+    "wires": [
+      []
+    ]
+  },
+  {
+    "id": "a0a6668f2c3e18c0",
+    "type": "inject",
+    "z": "9dab5d7ebec8e82f",
+    "name": "",
+    "props": [
+      {
+        "p": "payload"
+      }
+    ],
+    "repeat": "",
+    "crontab": "",
+    "once": false,
+    "onceDelay": 0.1,
+    "topic": "",
+    "payload": "{     \"pm25\": 5.3,     \"temperature\": 32.5,     \"humidity\": 55,     \"pressure\": 995 }",
+    "payloadType": "json",
+    "x": 230,
+    "y": 300,
+    "wires": [
+      [
+        "3ceb240c2aae2777"
+      ]
+    ]
+  },
+  {
+    "id": "mqtt_broker_config",
+    "type": "mqtt-broker",
+    "name": "mqtt.example.com",
+    "broker": "mqtt.example.com",
+    "port": "1883",
+    "clientid": "",
+    "autoConnect": true,
+    "usetls": false,
+    "protocolVersion": 4,
+    "keepalive": "60",
+    "cleansession": true,
+    "autoUnsubscribe": true,
+    "birthTopic": "",
+    "birthQos": "0",
+    "birthPayload": "",
+    "birthMsg": {},
+    "closeTopic": "",
+    "closePayload": "",
+    "closeMsg": {},
+    "willTopic": "",
+    "willQos": "0",
+    "willPayload": "",
+    "willMsg": {},
+    "userProps": "",
+    "sessionExpiry": ""
+  },
+  {
+    "id": "telegram_bot_config",
+    "type": "telegram bot",
+    "botname": "AeroSenseAI",
+    "usernames": "",
+    "chatids": "",
+    "baseapiurl": "",
+    "testenvironment": false,
+    "updatemode": "polling",
+    "pollinterval": "300",
+    "usesocks": false,
+    "sockshost": "",
+    "socksport": "1080",
+    "socksusername": "anonymous",
+    "sockspassword": "",
+    "bothost": "",
+    "botpath": "",
+    "localbothost": "",
+    "localbotport": "8443",
+    "publicbotport": "8443",
+    "privatekey": "",
+    "certificate": "",
+    "useselfsignedcertificate": false,
+    "sslterminated": false,
+    "verboselogging": false
+  },
+  {
+    "id": "32fef8ca9a6a7fbf",
+    "type": "global-config",
+    "env": [],
+    "modules": {
+      "node-red-contrib-telegrambot": "18.1.1"
+    }
+  }
+]
