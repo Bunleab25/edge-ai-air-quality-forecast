@@ -12,7 +12,7 @@ This is no longer just a research prototype. It is structured as an edge AI syst
 
 ## Scenario
 
-The system models an air-quality monitoring scenario for RMUTI campus in Nakhon Ratchasima, Thailand. It is intended for edge deployment where a small computing device runs inference close to the source of sensor data, reduces cloud dependency, and provides timely AQI information to local users or campus services.
+The system models an air-quality monitoring scenario for RMUTI campus. It is intended for edge deployment where a small computing device runs inference close to the source of sensor data, reduces cloud dependency, and provides timely AQI information to local users or campus services.
 
 ## Edge AI architecture
 
