@@ -46,6 +46,7 @@ The edge service in this repo is implemented in [model.py](model.py). It accepts
 - [scripts/06_evaluate.py](scripts/06_evaluate.py): evaluation metrics and reporting
 - [scripts/07_forecast_pipeline.py](scripts/07_forecast_pipeline.py): forecast generation pipeline
 - [model.py](model.py): Flask-based edge inference API for Raspberry Pi 5
+- [node-red/aerosense_edge_flow_sanitized.json](node-red/aerosense_edge_flow_sanitized.json): sanitized Node-RED flow for edge deployment
 - [tests/test_openaq_parser.py](tests/test_openaq_parser.py): validation for the data pipeline
 
 ## AI and deployment goal
