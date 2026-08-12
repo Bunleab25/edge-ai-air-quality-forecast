@@ -21,7 +21,7 @@ const char* WIFI_PASSWORD = "...";
 // --- Cloud MQTT Broker Settings ---
 const char* mqtt_server = "broker.hivemq.com"; 
 const int mqtt_port = 1883;
-const char* publish_topic = "rmuti/edge/bunleab/sensor1";
+const char* publish_topic = "Your Topic";
 
 // --- Hardware Pins ---
 #define RXD_PIN 4  // PMS7003 TX -> ESP32 RX
