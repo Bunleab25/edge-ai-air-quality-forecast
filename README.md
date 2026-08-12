@@ -1,10 +1,10 @@
 # Edge AI Air-Quality Forecast System
 
-AeroSense RMUTI is a campus-focused air-quality intelligence system designed for deployment on a Raspberry Pi 5 at the edge. It combines local sensor measurements, short-term weather context, and trained AQI forecasting models to estimate air-quality conditions for the next one to three days for the RMUTI campus in Nakhon Ratchasima, Thailand.
+AeroSense RMUTI is a campus-focused air-quality intelligence system designed for deployment on a Raspberry Pi 5 at the edge. It combines local sensor measurements, short-term weather context, and trained AQI forecasting models to estimate air-quality conditions for the next one to three days for the RMUTI campus.
 
 ## Visual preview
 
-![AeroSense edge AI forecast preview](redy.jpeg)
+![AeroSense edge AI forecast preview](ready.jpeg)
 
 The image above highlights the system's edge deployment concept and local forecast workflow.
 
